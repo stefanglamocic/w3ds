@@ -1,3 +1,5 @@
+import { Camera } from "./camera.js";
+import { InputEvents } from "./input-events.js";
 import { Mat } from "./mat.js";
 import { ShaderProgram } from "./shader-program.js";
 import { Utility } from "./util.js";
@@ -67,6 +69,8 @@ async function main() {
         return;
     }
 
+    const inputEvents = new InputEvents();
+
     const vsSource = await Utility.readFile(vertShaderFile);
     const fsSource = await Utility.readFile(fragShaderFile);
 
@@ -105,9 +109,8 @@ async function main() {
     gl.uniformMatrix4fv(uProjMatLoc, false, projMat);
 
     const viewMat = Mat.getIdentityMat();
-    Mat.transY(viewMat, -0.3);
-    Mat.transZ(viewMat, -6);
-    Mat.rotX(viewMat, 30);
+    const camera = new Camera(inputEvents, viewMat);
+    camera.move();
     gl.uniformMatrix4fv(uViewMatLoc, false, viewMat);
 
     const modelMat = Mat.getIdentityMat();
@@ -119,6 +122,10 @@ async function main() {
             Mat.setAspectRatio(projMat, FOV, canvas.width / canvas.height);
             gl.uniformMatrix4fv(uProjMatLoc, false, projMat);
         }
+        gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+
+        camera.move();
+        gl.uniformMatrix4fv(uViewMatLoc, false, viewMat);
 
         gl.drawElements(gl.TRIANGLES, cubeIndexArr.length, gl.UNSIGNED_SHORT, 0);
         requestAnimationFrame(animate);
@@ -129,7 +136,7 @@ async function main() {
 
 function setContextState(canvas: HTMLCanvasElement) {
     resizeCanvas(canvas);
-    gl.clearColor(0, 0, 0, 0);
+    gl.clearColor(0.15, 0.15, 0.15, 1.0);
     gl.enable(gl.DEPTH_TEST);
     gl.depthFunc(gl.LEQUAL);
     gl.enable(gl.CULL_FACE);
