@@ -1,8 +1,11 @@
 export class InputEvents {
     rotDelta: [number, number] = [0, 0];
+    movDelta: [number, number] = [0, 0];
+    zoomDelta = 0;
 
     private activeKeys: Record<string, boolean> = {};
     middleMActive = false;
+    rightMActive = false;
     private mousePos: [number, number] = [0, 0]; 
 
     constructor() {
@@ -11,6 +14,8 @@ export class InputEvents {
         window.addEventListener('mousedown', this.onMouseDown);
         window.addEventListener('mouseup', this.onMouseUp);
         window.addEventListener('mousemove', this.onMouseMove);
+        window.addEventListener('contextmenu', event => event.preventDefault());
+        window.addEventListener('wheel', event => this.zoomDelta += event.deltaY);
     }
 
     isKeyActive(key: string) {
@@ -18,9 +23,14 @@ export class InputEvents {
     }
 
     private onMouseDown = (event: MouseEvent) => {
+        this.mousePos = [event.clientX, event.clientY];
+        
         if (event.button === 1) {
             this.middleMActive = true;
-            this.mousePos = [event.clientX, event.clientY];
+        }
+
+        if (event.button === 2) {
+            this.rightMActive = true;
         }
 
         event.preventDefault();
@@ -29,6 +39,9 @@ export class InputEvents {
     private onMouseUp = (event: MouseEvent) => {
         if (event.button === 1)
             this.middleMActive = false;
+
+        if (event.button === 2)
+            this.rightMActive = false;
 
         event.preventDefault();
     }
@@ -40,6 +53,10 @@ export class InputEvents {
         if (this.middleMActive) {
             this.rotDelta[0] += dx;
             this.rotDelta[1] += dy;
+        }
+        else if (this.rightMActive) {
+            this.movDelta[0] += dx;
+            this.movDelta[1] += dy;
         }
 
         this.mousePos = [event.clientX, event.clientY];

@@ -29,8 +29,10 @@ async function main() {
 
     const inputEvents = new InputEvents();
 
-    const vsSource = await Utility.readFile(vertShaderFile);
-    const fsSource = await Utility.readFile(fragShaderFile);
+    const [vsSource, fsSource] = await Promise.all([
+        Utility.readFile(vertShaderFile),
+        Utility.readFile(fragShaderFile)
+    ]);
 
     setContextState(canvas);
 

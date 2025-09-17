@@ -5,6 +5,8 @@ import type { Position } from "./object/position.js";
 export class Camera {
     private readonly movSens = 0.15;
     private readonly rotSens = 0.2;
+    private readonly zoomSens = 0.01;
+    private readonly panSens = 0.01;
 
     private position: Position = {
         x: 0,
@@ -65,5 +67,14 @@ export class Camera {
 
             this.inputEvents.rotDelta = [0, 0];
         }
+        else if (this.inputEvents.rightMActive) {
+            this.position.x -= this.inputEvents.movDelta[0] * this.panSens;
+            this.position.y += this.inputEvents.movDelta[1] * this.panSens;
+
+            this.inputEvents.movDelta = [0, 0];
+        }
+
+        this.position.z -= this.inputEvents.zoomDelta * this.zoomSens;
+        this.inputEvents.zoomDelta = 0;
     }
 }

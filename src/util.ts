@@ -2,6 +2,7 @@ import { Obj } from "./object/obj.js";
 
 export class Utility {
     static async readFile(file: string) {
+        console.log("Loading: " + file);
         return fetch(file)
             .then(response => {
                 if (response.ok) {
