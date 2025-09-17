@@ -1,6 +1,6 @@
 import type { InputEvents } from "./input-events.js";
-import { Mat } from "./mat.js";
-import type { Position } from "./position.js";
+import { Mat } from "./math/mat.js";
+import type { Position } from "./object/position.js";
 
 export class Camera {
     private readonly movSens = 0.15;

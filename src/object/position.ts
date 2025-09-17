@@ -6,7 +6,7 @@ export type Position = {
     phi: number    //rotation around x axis
 };
 
-export function createPosition(): Position {
+export function defaultPosition(): Position {
     return {
         x: 0,
         y: 0,

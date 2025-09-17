@@ -1,52 +1,10 @@
 import { Camera } from "./camera.js";
 import { InputEvents } from "./input-events.js";
-import { Mat } from "./mat.js";
+import { Mat } from "./math/mat.js";
+import { buildCube } from "./object/cube.js";
+import { Renderable } from "./object/renderable.js";
 import { ShaderProgram } from "./shader-program.js";
 import { Utility } from "./util.js";
-
-const cubeVertArr =
-[
-    -1, -1, 1,    0, 0, 1,
-    1, -1, 1,     0, 0, 1,
-    1, 1, 1,      0, 0, 1,
-    -1, 1, 1,     0, 0, 1,
-
-    1, -1, 1,     1, 0, 0,
-    1, -1, -1,    1, 0, 0,
-    1, 1, -1,     1, 0, 0,
-    1, 1, 1,      1, 0, 0,
-
-    -1, -1, -1,    1, 0, 1,
-    1, -1, -1,     1, 0, 1,
-    1, -1, 1,      1, 0, 1,
-    -1, -1, 1,     1, 0, 1,
-
-    -1, -1, -1,   0, 1, 1,
-    -1, -1, 1,    0, 1, 1,
-    -1, 1, 1,     0, 1, 1,
-    -1, 1, -1,    0, 1, 1,
-
-    -1, 1, 1,     0, 1, 0,
-    1, 1, 1,      0, 1, 0,
-    1, 1, -1,     0, 1, 0,
-    -1, 1, -1,    0, 1, 0,
-
-    -1, 1, -1,     1, 1, 0,
-    1, 1, -1,      1, 1, 0,
-    1, -1, -1,     1, 1, 0,
-    -1, -1, -1,    1, 1, 0,
-
-];
-
-const cubeIndexArr = 
-[
-    0, 1, 2,    0, 2, 3,
-    4, 5, 6,    4, 6, 7,
-    8, 9, 10,   8, 10, 11,
-    12, 13, 14, 12, 14, 15,
-    16, 17, 18, 16, 18, 19,
-    20, 21, 22, 20, 22, 23
-];
 
 const vertShaderFile = 'shaders/vertexShader.vert';
 const fragShaderFile = 'shaders/fragmentShader.frag';
@@ -77,31 +35,17 @@ async function main() {
     setContextState(canvas);
 
     const program = new ShaderProgram(gl, vsSource, fsSource).getProgram();
-    gl.useProgram(program);
 
-    const vao = gl.createVertexArray();
-    gl.bindVertexArray(vao);
+    const renderables: Renderable[] = [];
+    const cubeMesh = buildCube();
+    renderables.push(new Renderable(gl, cubeMesh, program));
 
-    const vbo = gl.createBuffer();
-    gl.bindBuffer(gl.ARRAY_BUFFER, vbo);
-    gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(cubeVertArr), gl.STATIC_DRAW);
-
-    const aPositionLoc = gl.getAttribLocation(program, 'aPosition');
-    gl.vertexAttribPointer(aPositionLoc, 3, gl.FLOAT, false, 6 * 4, 0);
-    gl.enableVertexAttribArray(aPositionLoc);
-    const aColorLoc = gl.getAttribLocation(program, 'aColor');
-    gl.vertexAttribPointer(aColorLoc, 3, gl.FLOAT, false, 6 * 4, 3 * 4);
-    gl.enableVertexAttribArray(aColorLoc);
-
-    gl.bindBuffer(gl.ARRAY_BUFFER, null);
-
-    const ibo = gl.createBuffer();
-    gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, ibo);
-    gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, new Uint16Array(cubeIndexArr), gl.STATIC_DRAW);
 
     const uProjMatLoc = gl.getUniformLocation(program, 'uProjMat');
     const uViewMatLoc = gl.getUniformLocation(program, 'uViewMat');
     const uModelMatLoc = gl.getUniformLocation(program, 'uModelMat');
+
+    gl.useProgram(program);
 
     const projMat = Mat.getProjectionMat(FOV, 
         canvas.width / canvas.height, 
@@ -127,7 +71,12 @@ async function main() {
         camera.move();
         gl.uniformMatrix4fv(uViewMatLoc, false, viewMat);
 
-        gl.drawElements(gl.TRIANGLES, cubeIndexArr.length, gl.UNSIGNED_SHORT, 0);
+        for (const r of renderables) {
+            gl.bindVertexArray(r.getVAO());
+            gl.useProgram(r.getProgram());
+            gl.drawElements(gl.TRIANGLES, r.getCount(), r.getType(), 0);
+        }
+
         requestAnimationFrame(animate);
     };
 

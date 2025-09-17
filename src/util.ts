@@ -1,4 +1,4 @@
-import { Obj } from "./obj.js";
+import { Obj } from "./object/obj.js";
 
 export class Utility {
     static async readFile(file: string) {

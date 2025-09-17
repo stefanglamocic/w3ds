@@ -1,3 +1,5 @@
+import type { Mesh } from "./mesh.js";
+
 export class Obj {
     [key: string]: any;
 
@@ -15,7 +17,7 @@ export class Obj {
         return false;
     }
 
-    buildMesh() {
+    buildMesh(): Mesh {
         const vertices: number[] = [];
         const indices: number[] = [];
 
@@ -45,7 +47,11 @@ export class Obj {
             indices: isUInt ?
                 new Uint32Array(indices) :
                 new Uint16Array(indices),
-            isUInt: isUInt
+            isUInt: isUInt,
+            texturable: this.canApplyTex(),
+            hasNormals: true,
+            hasColors: false,
+            isPrimitive: false
         };
     }
 
