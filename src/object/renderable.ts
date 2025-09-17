@@ -1,3 +1,4 @@
+import { Mat } from "../math/mat.js";
 import type { Mesh } from "./mesh.js";
 import { defaultPosition, type Position } from "./position.js";
 
@@ -7,6 +8,7 @@ import { defaultPosition, type Position } from "./position.js";
 
 export class Renderable {
     private position: Position = defaultPosition();
+    private modelMat: number[];
     private vao: WebGLVertexArrayObject;
 
     constructor(private gl: WebGL2RenderingContext, 
@@ -14,7 +16,21 @@ export class Renderable {
         private program: WebGLProgram
     ) {
         this.vao = this.gl.createVertexArray();
+        this.modelMat = Mat.getIdentityMat();
         this.init();
+    }
+
+    move(dPos: Position) {
+        this.position.x += dPos.x;
+        this.position.y += dPos.y;
+        this.position.z += dPos.z;
+        this.position.theta += dPos.theta;
+        this.position.phi += dPos.phi;
+
+        Mat.setIdentityMat(this.modelMat);
+        Mat.translate(this.modelMat, this.position);
+        Mat.rotY(this.modelMat, this.position.theta);
+        Mat.rotX(this.modelMat, this.position.phi);
     }
 
     getVAO() { return this.vao; }
@@ -26,6 +42,8 @@ export class Renderable {
     getType() { return this.mesh.isUInt ? 
         this.gl.UNSIGNED_INT : this.gl.UNSIGNED_SHORT;
     }
+
+    getModelMat() { return this.modelMat; }
 
     private pointToAttrib(loc: number, isTex2D: boolean, 
         stride: number, offset: number) {

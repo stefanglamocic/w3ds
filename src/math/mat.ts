@@ -91,6 +91,12 @@ export class Mat {
         mat[14]! += z;
     }
 
+    static translate(mat: number[], pos: {x: number, y: number, z: number}) {
+        this.transX(mat, pos.x);
+        this.transY(mat, pos.y);
+        this.transZ(mat, pos.z);
+    }
+
     static scale(mat: number[], s: number) {
         for (let i = 0; i < 3; ++i) {
             for (let j = 0; j < 3; ++j) {

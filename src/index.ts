@@ -39,7 +39,10 @@ async function main() {
     const renderables: Renderable[] = [];
     const cubeMesh = buildCube();
     renderables.push(new Renderable(gl, cubeMesh, program));
-
+    renderables.push(new Renderable(gl, cubeMesh, program));
+    renderables[1]?.move({
+        x: 2, y: 0, z: -3, theta: 10, phi: 0
+    });
 
     const uProjMatLoc = gl.getUniformLocation(program, 'uProjMat');
     const uViewMatLoc = gl.getUniformLocation(program, 'uViewMat');
@@ -74,6 +77,7 @@ async function main() {
         for (const r of renderables) {
             gl.bindVertexArray(r.getVAO());
             gl.useProgram(r.getProgram());
+            gl.uniformMatrix4fv(uModelMatLoc, false, r.getModelMat());
             gl.drawElements(gl.TRIANGLES, r.getCount(), r.getType(), 0);
         }
 
