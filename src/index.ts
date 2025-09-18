@@ -2,12 +2,15 @@ import { Camera } from "./camera.js";
 import { InputEvents } from "./input-events.js";
 import { Mat } from "./math/mat.js";
 import { buildCube } from "./object/cube.js";
+import { Grid } from "./object/grid.js";
 import { Renderable } from "./object/renderable.js";
 import { ShaderProgram } from "./shader-program.js";
 import { Utility } from "./util.js";
 
 const vertShaderFile = 'shaders/vertexShader.vert';
 const fragShaderFile = 'shaders/fragmentShader.frag';
+const gridVertFile = 'shaders/grid.vert';
+const gridFragFile = 'shaders/grid.frag';
 
 var gl!: WebGL2RenderingContext;
 var FOV = 60;
@@ -29,59 +32,68 @@ async function main() {
 
     const inputEvents = new InputEvents();
 
-    const [vsSource, fsSource] = await Promise.all([
+    const [gridVSrc, gridFSrc, vsSource, fsSource] = await Promise.all([
+        Utility.readFile(gridVertFile),
+        Utility.readFile(gridFragFile),
         Utility.readFile(vertShaderFile),
         Utility.readFile(fragShaderFile)
     ]);
 
     setContextState(canvas);
 
-    const program = new ShaderProgram(gl, vsSource, fsSource).getProgram();
-
-    const renderables: Renderable[] = [];
-    const cubeMesh = buildCube();
-    renderables.push(new Renderable(gl, cubeMesh, program));
-    renderables.push(new Renderable(gl, cubeMesh, program));
-    renderables[1]?.move({
-        x: 2, y: 0, z: -3, theta: 10, phi: 0
-    });
-
-    const uProjMatLoc = gl.getUniformLocation(program, 'uProjMat');
-    const uViewMatLoc = gl.getUniformLocation(program, 'uViewMat');
-    const uModelMatLoc = gl.getUniformLocation(program, 'uModelMat');
-
-    gl.useProgram(program);
-
     const projMat = Mat.getProjectionMat(FOV, 
         canvas.width / canvas.height, 
         1, 100);
-    gl.uniformMatrix4fv(uProjMatLoc, false, projMat);
-
     const viewMat = Mat.getIdentityMat();
+
+    const gridShaderProg = new ShaderProgram(gl, gridVSrc, gridFSrc).getProgram();
+    const program = new ShaderProgram(gl, vsSource, fsSource).getProgram();
+
+    const programs = [gridShaderProg, program];
+
+    const renderables: Renderable[] = [];
+    const cubeMesh = buildCube();
+    Utility.readFile('res/bunny.obj')
+        .then(source => {
+            const mesh = Utility.parseObj(source).buildMesh();
+            const r = new Renderable(gl, mesh, program);
+            renderables.push(r);
+
+            r.move({x: -2, y: 0, z: 0, theta: 0, phi: 0});
+        });
+    renderables.push(new Renderable(gl, cubeMesh, program));
+    //renderables.push(new Renderable(gl, cubeMesh, program));
+    renderables[0]?.move({
+        x: 2, y: 0, z: -3, theta: 10, phi: 0
+    });
+    // renderables[1]?.move({
+    //     x: 2, y: 0, z: -3, theta: 10, phi: 0
+    // });
+
     const camera = new Camera(inputEvents, viewMat);
-    camera.move();
-    gl.uniformMatrix4fv(uViewMatLoc, false, viewMat);
+    camera.move(gl, programs);
 
-    const modelMat = Mat.getIdentityMat();
-    gl.uniformMatrix4fv(uModelMatLoc, false, modelMat);
-
+    const grid = new Grid(gl, gridShaderProg);
+    
+    updateProjMat(programs, projMat);
+    
     const animate = (timestamp: number) => {
         if (canvas.width !== canvasSize[0] || canvas.height !== canvasSize[1]) {
             resizeCanvas(canvas);
             Mat.setAspectRatio(projMat, FOV, canvas.width / canvas.height);
-            gl.uniformMatrix4fv(uProjMatLoc, false, projMat);
+            updateProjMat(programs, projMat);
         }
         gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
 
-        camera.move();
-        gl.uniformMatrix4fv(uViewMatLoc, false, viewMat);
+        camera.move(gl, programs);
 
         for (const r of renderables) {
-            gl.bindVertexArray(r.getVAO());
-            gl.useProgram(r.getProgram());
-            gl.uniformMatrix4fv(uModelMatLoc, false, r.getModelMat());
-            gl.drawElements(gl.TRIANGLES, r.getCount(), r.getType(), 0);
+            r.draw();
         }
+
+        // gl.disable(gl.CULL_FACE);
+        // grid.draw(projMat, viewMat, camera.getWorldPos());
+        // gl.enable(gl.CULL_FACE);
 
         requestAnimationFrame(animate);
     };
@@ -89,9 +101,17 @@ async function main() {
     animate(0);
 }
 
+function updateProjMat(programs: WebGLProgram[], projMat: number[]) {
+    for (const p of programs) {
+        const loc = gl.getUniformLocation(p, 'uProjMat');
+        gl.useProgram(p);
+        gl.uniformMatrix4fv(loc, false, projMat);
+    }
+}
+
 function setContextState(canvas: HTMLCanvasElement) {
     resizeCanvas(canvas);
-    gl.clearColor(0.15, 0.15, 0.15, 1.0);
+    gl.clearColor(0.1, 0.1, 0.1, 1.0);
     gl.enable(gl.DEPTH_TEST);
     gl.depthFunc(gl.LEQUAL);
     gl.enable(gl.CULL_FACE);

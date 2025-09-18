@@ -1,23 +1,46 @@
 import { Mat } from "../math/mat.js";
 import type { Mesh } from "./mesh.js";
 import { defaultPosition, type Position } from "./position.js";
+import { UniformManager } from "./uniform-manager.js";
 
 //vertex arr is interleaved
 //for obj: pos -> texPos? -> normal
 //for primitive: pos -> normal -> color
 
 export class Renderable {
+    private static readonly uniformNames = ['uHasColor'];
+
     private position: Position = defaultPosition();
     private modelMat: number[];
+    private modelMatLoc: WebGLUniformLocation | null;
     private vao: WebGLVertexArrayObject;
+    private uniformManager: UniformManager;
+    
 
     constructor(private gl: WebGL2RenderingContext, 
         private mesh: Mesh,
         private program: WebGLProgram
     ) {
         this.vao = this.gl.createVertexArray();
+        this.modelMatLoc = gl.getUniformLocation(program, 'uModelMat');
         this.modelMat = Mat.getIdentityMat();
+        this.uniformManager = new UniformManager(gl, program, Renderable.uniformNames);
         this.init();
+    }
+
+    draw() {
+        this.gl.bindVertexArray(this.vao);
+        this.gl.useProgram(this.program);
+        this.gl.uniformMatrix4fv(this.modelMatLoc, 
+            false,
+            this.modelMat
+        );
+        this.uniformManager.setBool('uHasColor', this.mesh.hasColors);
+        this.gl.drawElements(this.gl.TRIANGLES, 
+            this.getCount(),
+            this.getType(),
+            0 
+        );
     }
 
     move(dPos: Position) {
@@ -92,7 +115,23 @@ export class Renderable {
         }
         //for obj meshes
         else {
+            const stride = 6 * 4 + (this.mesh.texturable ? 2 * 4 : 0);
 
+            const attribs: Attribute[] = [
+                {name: 'aPosition', exists: true},
+                {name: 'aTexCoord', exists: this.mesh.texturable},
+                {name: 'aNormal', exists: this.mesh.hasNormals}
+            ];
+
+            let offset = 0;
+
+            for (const [i, a] of attribs.entries()) {
+                if (!a.exists)
+                    continue;
+                const loc = this.gl.getAttribLocation(this.program, a.name);
+                this.pointToAttrib(loc, i === 1, stride, offset);
+                offset += (i === 1) ? 2 * 4 : 3 * 4;
+            }
         }
 
         this.gl.bindBuffer(this.gl.ARRAY_BUFFER, null);
