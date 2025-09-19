@@ -61,14 +61,16 @@ async function main() {
 
             r.move({x: -2, y: 0, z: 0, theta: 0, phi: 0});
         });
-    renderables.push(new Renderable(gl, cubeMesh, program));
-    //renderables.push(new Renderable(gl, cubeMesh, program));
-    renderables[0]?.move({
+    const cubeRenderable = new Renderable(gl, cubeMesh, program);
+    const cubeCopy = new Renderable(gl, cubeMesh, program, cubeRenderable.getVAO());
+    renderables.push(cubeRenderable);
+    renderables.push(cubeCopy);
+    cubeRenderable.move({
         x: 2, y: 0, z: -3, theta: 10, phi: 0
     });
-    // renderables[1]?.move({
-    //     x: 2, y: 0, z: -3, theta: 10, phi: 0
-    // });
+    cubeCopy.move({
+        x: -1, y: 0, z: -4.4, theta: 120, phi: 76
+    });
 
     const camera = new Camera(inputEvents, viewMat);
     camera.move(gl, programs);
@@ -111,7 +113,7 @@ function updateProjMat(programs: WebGLProgram[], projMat: number[]) {
 
 function setContextState(canvas: HTMLCanvasElement) {
     resizeCanvas(canvas);
-    gl.clearColor(0.1, 0.1, 0.1, 1.0);
+    gl.clearColor(0.16, 0.16, 0.16, 1.0);
     gl.enable(gl.DEPTH_TEST);
     gl.depthFunc(gl.LEQUAL);
     gl.enable(gl.CULL_FACE);

@@ -13,15 +13,14 @@ export class Renderable {
     private position: Position = defaultPosition();
     private modelMat: number[];
     private modelMatLoc: WebGLUniformLocation | null;
-    private vao: WebGLVertexArrayObject;
     private uniformManager: UniformManager;
     
 
     constructor(private gl: WebGL2RenderingContext, 
         private mesh: Mesh,
-        private program: WebGLProgram
+        private program: WebGLProgram,
+        private vao: WebGLVertexArrayObject | null = null
     ) {
-        this.vao = this.gl.createVertexArray();
         this.modelMatLoc = gl.getUniformLocation(program, 'uModelMat');
         this.modelMat = Mat.getIdentityMat();
         this.uniformManager = new UniformManager(gl, program, Renderable.uniformNames);
@@ -35,7 +34,7 @@ export class Renderable {
             false,
             this.modelMat
         );
-        this.uniformManager.setBool('uHasColor', this.mesh.hasColors);
+        this.uniformManager.setBool(Renderable.uniformNames[0]!, this.mesh.hasColors);
         this.gl.drawElements(this.gl.TRIANGLES, 
             this.getCount(),
             this.getType(),
@@ -84,6 +83,9 @@ export class Renderable {
     }
 
     private init() {
+        if (this.vao !== null)
+            return;
+        this.vao = this.gl.createVertexArray();
         this.gl.bindVertexArray(this.vao);
 
         const vbo = this.gl.createBuffer();
