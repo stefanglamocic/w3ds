@@ -136,8 +136,19 @@ export class Renderer {
 
     deleteObject(r: Renderable) {
         this.delArrEl(this.renderables, r);
+        const tex = r.getTexture();
+        if (tex !== null) {
+            for (const t of Object.values(this.loadedTextures)) {
+                if (t.tex === tex) {
+                    if (--t.refs === 0)
+                        this.gl.deleteTexture(tex);
+                    break;
+                }
+            }
+        }
+
         for (const rends of this.rendInstances.values()) {
-            if (rends[0]!.getVAO() === r.getVAO()) {
+            if (rends.length > 0 && rends[0]!.getVAO() === r.getVAO()) {
                 this.delArrEl(rends, r);
                 if (rends.length === 0) {
                     r.destroy();
@@ -149,7 +160,7 @@ export class Renderer {
     }
 
     async loadTexture(file: string, program: WebGLProgram) {
-        if (file in this.loadedTextures) {
+        if (file in this.loadedTextures && this.loadedTextures[file]!.refs > 0) {
             this.loadedTextures[file]!.refs++;
             return this.loadedTextures[file]!.tex;
         }

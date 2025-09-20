@@ -36,6 +36,6 @@ async function main() {
 
     // renderer.deleteObject(cube);
 
-    renderer.debug();
+    //renderer.debug();
 
 }

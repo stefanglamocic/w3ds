@@ -73,6 +73,8 @@ export class Renderable {
             this.diffuseTex = texture;
     }
 
+    getTexture() { return this.diffuseTex; }
+
     destroy() {
         this.gl.deleteVertexArray(this.vao);
         this.gl.deleteBuffer(this.vbo);
