@@ -30,8 +30,11 @@ async function main() {
     renderer.loadTexture('res/colormap.png', obj.getProgram())
         .then(tex => obj.setTexture(tex));
 
-    renderer.loadCube().move({x: 3.12, y: 0, z: -0.7, theta: 45, phi: 0});
+    const cube = renderer.loadCube();
+    cube.move({x: 3.12, y: 0, z: -0.7, theta: 45, phi: 0});
     renderer.loadCube().move({x: -5.4, y: 0, z: -6.7, theta: 12, phi: 90});
+
+    // renderer.deleteObject(cube);
 
     renderer.debug();
 

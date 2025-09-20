@@ -15,6 +15,8 @@ export class Renderable {
     private modelMatLoc: WebGLUniformLocation | null;
     private diffuseTex: WebGLTexture | null = null;
     private uniformManager: UniformManager;
+    private vbo!: WebGLBuffer;
+    private ibo!: WebGLBuffer;
     
 
     constructor(private gl: WebGL2RenderingContext, 
@@ -31,20 +33,7 @@ export class Renderable {
     draw() {
         this.gl.bindVertexArray(this.vao);
         this.gl.useProgram(this.program);
-        this.gl.uniformMatrix4fv(this.modelMatLoc, 
-            false,
-            this.modelMat
-        );
-        this.uniformManager.setBool(Renderable.uniformNames[0]!, this.mesh.hasColors);
-        if (this.mesh.hasColors)
-            this.uniformManager.setBool('uHasColor', true);
-        if (this.diffuseTex !== null) {
-            this.uniformManager.setBool('uHasTex', true);
-            this.uniformManager.setActiveTex('uDiffuseMap', this.diffuseTex, 0);
-        }
-        else {
-            this.uniformManager.setBool('uHasTex', false);
-        }
+        this.setUpUniforms();
         this.gl.drawElements(this.gl.TRIANGLES, 
             this.getCount(),
             this.getType(),
@@ -84,6 +73,27 @@ export class Renderable {
             this.diffuseTex = texture;
     }
 
+    destroy() {
+        this.gl.deleteVertexArray(this.vao);
+        this.gl.deleteBuffer(this.vbo);
+        this.gl.deleteBuffer(this.ibo);
+    }
+
+    private setUpUniforms() {
+        this.gl.uniformMatrix4fv(this.modelMatLoc, 
+            false,
+            this.modelMat
+        );
+        this.uniformManager.setBool(Renderable.uniformNames[0]!, this.mesh.hasColors);
+        if (this.diffuseTex !== null) {
+            this.uniformManager.setBool(Renderable.uniformNames[1]!, true);
+            this.uniformManager.setActiveTex(Renderable.uniformNames[2]!, this.diffuseTex, 0);
+        }
+        else {
+            this.uniformManager.setBool(Renderable.uniformNames[1]!, false);
+        }
+    }
+
     private pointToAttrib(loc: number, isTex2D: boolean, 
         stride: number, offset: number) {
         if (loc === -1)
@@ -105,8 +115,8 @@ export class Renderable {
         this.vao = this.gl.createVertexArray();
         this.gl.bindVertexArray(this.vao);
 
-        const vbo = this.gl.createBuffer();
-        this.gl.bindBuffer(this.gl.ARRAY_BUFFER, vbo);
+        this.vbo = this.gl.createBuffer();
+        this.gl.bindBuffer(this.gl.ARRAY_BUFFER, this.vbo);
         this.gl.bufferData(
             this.gl.ARRAY_BUFFER, 
             this.mesh.vertices, 
@@ -155,8 +165,8 @@ export class Renderable {
 
         this.gl.bindBuffer(this.gl.ARRAY_BUFFER, null);
 
-        const ibo = this.gl.createBuffer();
-        this.gl.bindBuffer(this.gl.ELEMENT_ARRAY_BUFFER, ibo);
+        this.ibo = this.gl.createBuffer();
+        this.gl.bindBuffer(this.gl.ELEMENT_ARRAY_BUFFER, this.ibo);
         this.gl.bufferData(this.gl.ELEMENT_ARRAY_BUFFER, 
             this.mesh.indices,
             this.gl.STATIC_DRAW

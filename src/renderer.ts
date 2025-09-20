@@ -26,6 +26,7 @@ export class Renderer {
 
     private rendInstances = new Map<string, Renderable[]>();
     private renderables: Renderable[] = [];
+    private loadedTextures: Record<string, {tex: WebGLTexture, refs: number}> = {};
 
     private constructor(private gl: WebGL2RenderingContext,
         private canvas: HTMLCanvasElement) {
@@ -133,7 +134,25 @@ export class Renderer {
         }
     }
 
+    deleteObject(r: Renderable) {
+        this.delArrEl(this.renderables, r);
+        for (const rends of this.rendInstances.values()) {
+            if (rends[0]!.getVAO() === r.getVAO()) {
+                this.delArrEl(rends, r);
+                if (rends.length === 0) {
+                    r.destroy();
+                }
+                break;
+            }
+        }
+
+    }
+
     async loadTexture(file: string, program: WebGLProgram) {
+        if (file in this.loadedTextures) {
+            this.loadedTextures[file]!.refs++;
+            return this.loadedTextures[file]!.tex;
+        }
         const texture = this.gl.createTexture();
         return Utility.loadImage(file)
             .then(img => {
@@ -157,8 +176,21 @@ export class Renderer {
                 this.gl.generateMipmap(this.gl.TEXTURE_2D);
 
                 this.gl.bindTexture(this.gl.TEXTURE_2D, null);
+
+                this.loadedTextures[file] = {tex: texture, refs: 1};
+
                 return texture;
             });
+    }
+
+    private delArrEl(arr: Renderable[], r: Renderable) {
+        const i = arr.indexOf(r);
+        const len = arr.length;
+        if (i === -1)
+            return;
+
+        arr[i] = arr[len - 1]!;
+        arr.pop();
     }
 
     private setContextState() {
