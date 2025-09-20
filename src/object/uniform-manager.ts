@@ -21,6 +21,13 @@ export class UniformManager {
         this.gl.uniform3fv(loc, value);
     }
 
+    setActiveTex(name: string, texture: WebGLTexture, unit: number) {
+        const loc = this.getLoc(name);
+        this.gl.uniform1i(loc, unit);
+        this.gl.activeTexture(this.gl.TEXTURE0 + unit);
+        this.gl.bindTexture(this.gl.TEXTURE_2D, texture);
+    }
+
     private getLoc(name: string) {
         const loc = this.locations[name];
         if (loc === null || loc === undefined)

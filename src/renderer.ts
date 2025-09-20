@@ -1,6 +1,7 @@
 import { Camera } from "./camera.js";
 import { InputEvents } from "./input-events.js";
 import { Mat } from "./math/mat.js";
+import { buildCube } from "./object/cube.js";
 import { Renderable } from "./object/renderable.js";
 import { ShaderProgram } from "./shader-program.js";
 import { Utility } from "./util.js";
@@ -10,9 +11,9 @@ const fragShaderFile = 'shaders/fragmentShader.frag';
 const gridVertFile = 'shaders/grid.vert';
 const gridFragFile = 'shaders/grid.frag';
 
-
 var FOV = 60;
 var canvasSize: [number, number] = [window.innerWidth, window.innerHeight];
+const clearColor: [number, number, number, number] = [0.16, 0.16, 0.16, 1.0];
 
 export class Renderer {
     private programs: { [key: string]: WebGLProgram } = {};
@@ -23,6 +24,7 @@ export class Renderer {
     private inputEvents: InputEvents;
     private camera: Camera;
 
+    private rendInstances = new Map<string, Renderable[]>();
     private renderables: Renderable[] = [];
 
     private constructor(private gl: WebGL2RenderingContext,
@@ -32,6 +34,10 @@ export class Renderer {
         this.projMat = Mat.getProjectionMat(FOV, canvas.width / canvas.height, 1, 100);
         this.inputEvents = new InputEvents();
         this.camera = new Camera(this.inputEvents, this.viewMat);
+    }
+
+    debug() {
+        console.log(this.rendInstances);
     }
 
     run = (timestamp?: number) => {
@@ -71,24 +77,93 @@ export class Renderer {
         return rend;
     }
 
-    loadPrimitiveModel(file: string) {
+    async loadRegularModel(file: string) {
         const program = this.programs['regular'];
         if (program === undefined)
             throw new Error("Regular shader program is missing!");
-        this.loadModel(file, program);
+        return this.loadModel(file, program);
     }
 
-    loadModel(file: string, program: WebGLProgram) {
-        Utility.readFile(file)
+    async loadModel(file: string, program: WebGLProgram) {
+        if (this.rendInstances.has(file) && 
+            this.rendInstances.get(file)!.length > 0) {
+            const temp = this.rendInstances.get(file)![0]!;
+            const mesh = temp.getMesh();
+            const vao = temp.getVAO();
+
+            const r = new Renderable(this.gl, mesh, program, vao);
+            this.rendInstances.get(file)?.push(r);
+            this.renderables.push(r);
+
+            return r;
+        }
+        return Utility.readFile(file)
             .then(source => {
                 const mesh = Utility.parseObj(source).buildMesh();
-                this.renderables.push(new Renderable(this.gl, mesh, program));
+                const r = new Renderable(this.gl, mesh, program);
+                this.rendInstances.set(file, [r]);
+                this.renderables.push(r);
+
+                return r;
+            });
+    }
+
+    loadCube() {
+        const objName = 'cube';
+        const program = this.programs['regular'];
+        if (program === undefined)
+            throw new Error("Regular shader program is missing!");
+
+        if (this.rendInstances.has(objName) && 
+            this.rendInstances.get(objName)!.length > 0) {
+                const temp = this.rendInstances.get(objName)![0]!;
+                const r = new Renderable(this.gl, temp.getMesh(), program, temp.getVAO());
+                this.rendInstances.get(objName)?.push(r);
+                this.renderables.push(r);
+
+                return r;
+        }
+        else {
+            const cubeMesh = buildCube();
+            const r = new Renderable(this.gl, cubeMesh, program);
+            this.rendInstances.set(objName, [r]);
+            this.renderables.push(r);
+
+            return r;
+        }
+    }
+
+    async loadTexture(file: string, program: WebGLProgram) {
+        const texture = this.gl.createTexture();
+        return Utility.loadImage(file)
+            .then(img => {
+                this.gl.bindTexture(this.gl.TEXTURE_2D, texture);
+                this.gl.pixelStorei(this.gl.UNPACK_FLIP_Y_WEBGL, true);
+                this.gl.texImage2D(this.gl.TEXTURE_2D,
+                    0,
+                    this.gl.RGBA,
+                    this.gl.RGBA,
+                    this.gl.UNSIGNED_BYTE,
+                    img
+                );
+                this.gl.texParameteri(this.gl.TEXTURE_2D, 
+                    this.gl.TEXTURE_MAG_FILTER, 
+                    this.gl.LINEAR
+                );
+                this.gl.texParameteri(this.gl.TEXTURE_2D, 
+                    this.gl.TEXTURE_MIN_FILTER, 
+                    this.gl.LINEAR_MIPMAP_LINEAR
+                );
+                this.gl.generateMipmap(this.gl.TEXTURE_2D);
+
+                this.gl.bindTexture(this.gl.TEXTURE_2D, null);
+                return texture;
             });
     }
 
     private setContextState() {
         this.resizeCanvas();
-        this.gl.clearColor(0.16, 0.16, 0.16, 1.0);
+        this.gl.clearColor(...clearColor);
         this.gl.enable(this.gl.DEPTH_TEST);
         this.gl.depthFunc(this.gl.LEQUAL);
         this.gl.enable(this.gl.CULL_FACE);

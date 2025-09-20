@@ -16,7 +16,10 @@ export class Utility {
         return new Promise((resolve, reject) => {
             const img = new Image();
             img.src = file;
-            img.onload = () => resolve(img);
+            img.onload = () => {
+                console.log("Loaded: " + file);
+                resolve(img);
+            };
             img.onerror = reject;
         });
     }

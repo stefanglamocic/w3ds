@@ -8,11 +8,12 @@ import { UniformManager } from "./uniform-manager.js";
 //for primitive: pos -> normal -> color
 
 export class Renderable {
-    private static readonly uniformNames = ['uHasColor'];
+    private static readonly uniformNames = ['uHasColor', 'uHasTex', 'uDiffuseMap'];
 
     private position: Position = defaultPosition();
     private modelMat: number[];
     private modelMatLoc: WebGLUniformLocation | null;
+    private diffuseTex: WebGLTexture | null = null;
     private uniformManager: UniformManager;
     
 
@@ -35,6 +36,15 @@ export class Renderable {
             this.modelMat
         );
         this.uniformManager.setBool(Renderable.uniformNames[0]!, this.mesh.hasColors);
+        if (this.mesh.hasColors)
+            this.uniformManager.setBool('uHasColor', true);
+        if (this.diffuseTex !== null) {
+            this.uniformManager.setBool('uHasTex', true);
+            this.uniformManager.setActiveTex('uDiffuseMap', this.diffuseTex, 0);
+        }
+        else {
+            this.uniformManager.setBool('uHasTex', false);
+        }
         this.gl.drawElements(this.gl.TRIANGLES, 
             this.getCount(),
             this.getType(),
@@ -65,7 +75,14 @@ export class Renderable {
         this.gl.UNSIGNED_INT : this.gl.UNSIGNED_SHORT;
     }
 
+    getMesh() { return this.mesh; }
+
     getModelMat() { return this.modelMat; }
+
+    setTexture(texture: WebGLTexture) {
+        if (this.mesh.texturable)
+            this.diffuseTex = texture;
+    }
 
     private pointToAttrib(loc: number, isTex2D: boolean, 
         stride: number, offset: number) {
