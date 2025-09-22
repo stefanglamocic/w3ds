@@ -1,17 +1,16 @@
 import type { InputEvents } from "./input-events.js";
 import { Mat, type Vec3 } from "./math/mat.js";
-import type { Position } from "./object/position.js";
 
 export class Camera {
     private readonly movSens = 0.15;
-    private readonly rotSens = 0.2;
+    private readonly rotSens = 0.1;
     private readonly zoomSens = 0.01;
     private readonly panSens = 0.01;
 
     private state: CameraState = {
         x: 0,
-        y: 0,
-        z: 9,
+        y: 4,
+        z: 12,
         u: [1, 0, 0],
         v: [0, 1, 0],
         n: [0, 0, 1]
@@ -19,7 +18,11 @@ export class Camera {
     private firstFrame = true;
     private viewMatLocs = new Map<WebGLProgram, WebGLUniformLocation>();
 
-    constructor(private inputEvents: InputEvents, private viewMat: number[]) { }
+    constructor(private inputEvents: InputEvents, private viewMat: number[]) { 
+            this.state.n = Mat.rotateVec(this.state.n, this.state.u, -20);
+            this.state.v = Mat.cross(this.state.n, this.state.u);
+            this.normalizeUVN();
+    }
 
     move(gl: WebGL2RenderingContext, programs: WebGLProgram[]) {
         const moved = this.updatePosition();
@@ -86,9 +89,7 @@ export class Camera {
             this.state.n = Mat.rotateVec(this.state.n, this.state.u, -dy);
             this.state.v = Mat.cross(this.state.n, this.state.u);
 
-            this.state.n = Mat.normalize(this.state.n);
-            this.state.u = Mat.normalize(this.state.u);
-            this.state.v = Mat.normalize(this.state.v);
+            this.normalizeUVN();
 
             this.inputEvents.rotDelta = [0, 0];
             moved = true;
@@ -112,6 +113,12 @@ export class Camera {
         }
 
         return moved;
+    }
+
+    private normalizeUVN() {
+        this.state.n = Mat.normalize(this.state.n);
+        this.state.u = Mat.normalize(this.state.u);
+        this.state.v = Mat.normalize(this.state.v);
     }
 
     private setCameraPosition() {

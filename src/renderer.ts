@@ -53,11 +53,11 @@ export class Renderer {
 
         this.camera.move(this.gl, Object.values(this.programs));
 
-        this.drawGrid();
-
         for (const r of this.renderables) {
             r.draw();
         }
+
+        this.drawGrid();
 
         requestAnimationFrame(this.run);
     }
@@ -92,9 +92,13 @@ export class Renderer {
 
     private drawGrid() {
         this.gl.disable(this.gl.CULL_FACE);
+        this.gl.enable(this.gl.BLEND);
+        this.gl.blendFunc(this.gl.SRC_ALPHA, this.gl.ONE_MINUS_SRC_ALPHA);
+
         this.grid?.draw(this.projMat, this.viewMat, this.camera.getWorldPos());
 
         this.gl.enable(this.gl.CULL_FACE);
+        this.gl.disable(this.gl.BLEND);
     }
 
     async loadRegularModel(file: string) {
