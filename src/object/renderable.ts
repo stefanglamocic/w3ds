@@ -8,10 +8,11 @@ import { UniformManager } from "./uniform-manager.js";
 //for primitive: pos -> normal -> color
 
 export class Renderable {
-    private static readonly uniformNames = ['uHasColor', 'uHasTex', 'uDiffuseMap'];
+    private static readonly uniformNames = ['uHasColor', 'uHasTex', 'uDiffuseMap', 'uNormalMat'];
 
     private position: Position = defaultPosition();
     private modelMat: number[];
+    private normalMat: number[];
     private modelMatLoc: WebGLUniformLocation | null;
     private diffuseTex: WebGLTexture | null = null;
     private uniformManager: UniformManager;
@@ -26,6 +27,7 @@ export class Renderable {
     ) {
         this.modelMatLoc = gl.getUniformLocation(program, 'uModelMat');
         this.modelMat = Mat.getIdentityMat();
+        this.normalMat = Mat.getIdentityMat();
         this.uniformManager = new UniformManager(gl, program, Renderable.uniformNames);
         this.init();
     }
@@ -52,6 +54,7 @@ export class Renderable {
         Mat.translate(this.modelMat, this.position);
         Mat.rotY(this.modelMat, this.position.theta);
         Mat.rotX(this.modelMat, this.position.phi);
+        Mat.modelToNormalMat(this.modelMat, this.normalMat);
     }
 
     getVAO() { return this.vao; }
@@ -86,6 +89,7 @@ export class Renderable {
             false,
             this.modelMat
         );
+        this.uniformManager.setMat4('uNormalMat', this.normalMat);
         this.uniformManager.setBool(Renderable.uniformNames[0]!, this.mesh.hasColors);
         if (this.diffuseTex !== null) {
             this.uniformManager.setBool(Renderable.uniformNames[1]!, true);

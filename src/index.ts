@@ -19,6 +19,7 @@ async function main() {
     }
 
     const renderer = await Renderer.init(gl, canvas);
+    renderer.enableGrid();
     renderer.run();
 
     const obj = await renderer.loadRegularModel('res/garbage-truck.obj')

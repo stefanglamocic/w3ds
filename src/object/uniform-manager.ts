@@ -21,6 +21,11 @@ export class UniformManager {
         this.gl.uniform3fv(loc, value);
     }
 
+    setMat4(name: string, value: number[]) {
+        const loc = this.getLoc(name);
+        this.gl.uniformMatrix4fv(loc, false, value);
+    }
+
     setActiveTex(name: string, texture: WebGLTexture, unit: number) {
         const loc = this.getLoc(name);
         this.gl.uniform1i(loc, unit);
@@ -30,8 +35,10 @@ export class UniformManager {
 
     private getLoc(name: string) {
         const loc = this.locations[name];
-        if (loc === null || loc === undefined)
-            throw new Error("unknown uniform name: " + name);
+        if (loc === null || loc === undefined) {
+            console.warn("Uniform not found or optimized away:", name);
+            return null;
+        }
 
         return loc;
     }

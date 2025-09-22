@@ -3,30 +3,19 @@
 uniform mat4 uProjMat, uViewMat;
 uniform vec3 uCamPos;
 
-out vec3 vNearPoint;
-out vec3 vFarPoint;
-
-const vec3 gridPlane[6] = vec3[](
-    vec3(1.0,  1.0, 0.0),
-    vec3(-1.0, -1.0, 0.0),
-    vec3(-1.0,  1.0, 0.0),
-    vec3(-1.0, -1.0, 0.0),
-    vec3(1.0,  1.0, 0.0),
-    vec3(1.0, -1.0, 0.0)
+const vec3 gridPlane[4] = vec3[](
+    vec3(-10.0,  .0, -10.0),
+    vec3(10.0, .0, -10.0),
+    vec3(10.0, .0, 10.0),
+    vec3(-10.0, .0, 10.0)
 );
 
-vec3 unprojectPoint(float x, float y, float z, mat4 viewMat, mat4 projMat) {
-    mat4 viewMatInv = inverse(viewMat);
-    mat4 projMatInv = inverse(projMat);
-
-    vec4 unprojPoint = viewMatInv * projMatInv * vec4(x, y, z, 1.0);
-    return unprojPoint.xyz / unprojPoint.w;
-}
+const int indices[6] = int[](0, 1, 2, 0, 2, 3);
 
 void main() {
-    vec3 p = gridPlane[gl_VertexID];
-    vNearPoint = unprojectPoint(p.x, p.y, 0.0, uViewMat, uProjMat);
-    vFarPoint = unprojectPoint(p.x, p.y, 1.0, uViewMat, uProjMat);
-
-    gl_Position = vec4(p, 1.0);
+    vec3 p = gridPlane[indices[gl_VertexID]];
+    p.x += uCamPos.x;
+    p.z += uCamPos.z;
+    gl_Position = uProjMat * uViewMat * 
+        vec4(p, 1.0);
 }

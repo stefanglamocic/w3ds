@@ -2,6 +2,7 @@ import { Camera } from "./camera.js";
 import { InputEvents } from "./input-events.js";
 import { Mat } from "./math/mat.js";
 import { buildCube } from "./object/cube.js";
+import { Grid } from "./object/grid.js";
 import { Renderable } from "./object/renderable.js";
 import { ShaderProgram } from "./shader-program.js";
 import { Utility } from "./util.js";
@@ -23,6 +24,7 @@ export class Renderer {
 
     private inputEvents: InputEvents;
     private camera: Camera;
+    private grid: Grid | null = null;
 
     private rendInstances = new Map<string, Renderable[]>();
     private renderables: Renderable[] = [];
@@ -51,6 +53,8 @@ export class Renderer {
 
         this.camera.move(this.gl, Object.values(this.programs));
 
+        this.drawGrid();
+
         for (const r of this.renderables) {
             r.draw();
         }
@@ -76,6 +80,21 @@ export class Renderer {
         rend.updateProjMat();
 
         return rend;
+    }
+
+    enableGrid() {
+        if (this.programs['grid'] === undefined) {
+            throw new Error("Grid shader program is missing!");
+        }
+
+        this.grid = new Grid(this.gl, this.programs['grid']);
+    }
+
+    private drawGrid() {
+        this.gl.disable(this.gl.CULL_FACE);
+        this.grid?.draw(this.projMat, this.viewMat, this.camera.getWorldPos());
+
+        this.gl.enable(this.gl.CULL_FACE);
     }
 
     async loadRegularModel(file: string) {
