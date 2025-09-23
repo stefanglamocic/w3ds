@@ -3,7 +3,7 @@
 uniform mat4 uProjMat, uViewMat, uModelMat, uNormalMat;
 uniform bool uHasColor;
 
-in vec3 aPosition;
+layout(location = 0) in vec3 aPosition;
 in vec3 aNormal;
 in vec3 aColor;
 in vec2 aTexCoord;

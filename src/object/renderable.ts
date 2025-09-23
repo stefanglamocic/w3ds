@@ -8,6 +8,8 @@ import { UniformManager } from "./uniform-manager.js";
 //for primitive: pos -> normal -> color
 
 export class Renderable {
+    private static counter = 1;
+    public readonly ID: number;
     private static readonly uniformNames = ['uHasColor', 'uHasTex', 'uDiffuseMap', 'uNormalMat'];
 
     private position: Position = defaultPosition();
@@ -25,6 +27,7 @@ export class Renderable {
         private program: WebGLProgram,
         private vao: WebGLVertexArrayObject | null = null
     ) {
+        this.ID = Renderable.counter++;
         this.modelMatLoc = gl.getUniformLocation(program, 'uModelMat');
         this.modelMat = Mat.getIdentityMat();
         this.normalMat = Mat.getIdentityMat();

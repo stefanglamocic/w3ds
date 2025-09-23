@@ -8,6 +8,8 @@ export class InputEvents {
     rightMActive = false;
     private mousePos: [number, number] = [0, 0]; 
 
+    private clickCallback: ((event: MouseEvent) => void) | null = null;
+
     constructor() {
         window.addEventListener('keydown', (event) => this.activeKeys[event.key] = true);
         window.addEventListener('keyup', (event) => this.activeKeys[event.key] = false);
@@ -22,9 +24,17 @@ export class InputEvents {
         return this.activeKeys[key] === true;
     }
 
+    setClickCallback(callback: (e: MouseEvent) => void) {
+        this.clickCallback = callback;
+    } 
+
     private onMouseDown = (event: MouseEvent) => {
         this.mousePos = [event.clientX, event.clientY];
         
+        if (event.button === 0 && this.clickCallback) {
+            this.clickCallback(event);
+        }
+
         if (event.button === 1) {
             this.middleMActive = true;
         }

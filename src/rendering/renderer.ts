@@ -1,16 +1,19 @@
-import { Camera } from "./camera.js";
-import { InputEvents } from "./input-events.js";
-import { Mat } from "./math/mat.js";
-import { buildCube } from "./object/cube.js";
-import { Grid } from "./object/grid.js";
-import { Renderable } from "./object/renderable.js";
+import { Camera } from "../core/camera.js";
+import { InputEvents } from "../core/input-events.js";
+import { Mat } from "../math/mat.js";
+import { buildCube } from "../object/cube.js";
+import { Grid } from "../object/grid.js";
+import { Renderable } from "../object/renderable.js";
 import { ShaderProgram } from "./shader-program.js";
-import { Utility } from "./util.js";
+import { Utility } from "../util/util.js";
+import { PickingFramebuffer } from "./picking-framebuffer.js";
 
 const vertShaderFile = 'shaders/vertexShader.vert';
 const fragShaderFile = 'shaders/fragmentShader.frag';
 const gridVertFile = 'shaders/grid.vert';
 const gridFragFile = 'shaders/grid.frag';
+const pickingVertFile = 'shaders/picking.vert';
+const pickingFragFile = 'shaders/picking.frag'
 
 var FOV = 60;
 var canvasSize: [number, number] = [window.innerWidth, window.innerHeight];
@@ -30,13 +33,17 @@ export class Renderer {
     private renderables: Renderable[] = [];
     private loadedTextures: Record<string, {tex: WebGLTexture, refs: number}> = {};
 
+    private pickingFBO: PickingFramebuffer;
+
     private constructor(private gl: WebGL2RenderingContext,
         private canvas: HTMLCanvasElement) {
         window.addEventListener('resize', () => canvasSize = [window.innerWidth, window.innerHeight]);
         this.setContextState();
         this.projMat = Mat.getProjectionMat(FOV, canvas.width / canvas.height, 1, 100);
         this.inputEvents = new InputEvents();
+        this.inputEvents.setClickCallback(this.onClick);
         this.camera = new Camera(this.inputEvents, this.viewMat);
+        this.pickingFBO = new PickingFramebuffer(gl, canvas.width, canvas.height);
     }
 
     debug() {
@@ -62,6 +69,27 @@ export class Renderer {
         requestAnimationFrame(this.run);
     }
 
+    private onClick = (event: MouseEvent) => {
+        const x = Math.floor(event.clientX);
+        const y = Math.floor(this.canvas.height - event.clientY - 1);
+        
+        this.pickingFBO.enableWriting();
+
+        this.gl.clearBufferuiv(this.gl.COLOR, 0, new Uint32Array([0, 0, 0, 0]));
+        this.gl.clear(this.gl.DEPTH_BUFFER_BIT);
+
+        this.gl.useProgram(this.programs['picking']!);
+
+        for (const r of this.renderables) {
+            this.pickingFBO.drawToBuffer(r);
+        }
+
+        this.pickingFBO.disableWriting();
+
+        const objID = this.pickingFBO.readPixel(x, y);
+        console.log(objID);
+    };
+
     static async init(gl: WebGL2RenderingContext, canvas: HTMLCanvasElement) {
         const rend = new Renderer(gl, canvas);
         const shaderPairs = await Renderer.readShaderFiles();
@@ -76,8 +104,14 @@ export class Renderer {
             shaderPairs.regularShaders[1]
         ).getProgram();
 
+        rend.programs['picking'] = new ShaderProgram(gl,
+            shaderPairs.pickingShaders[0],
+            shaderPairs.pickingShaders[1]
+        ).getProgram();
+
         rend.camera.move(gl, Object.values(rend.programs));
         rend.updateProjMat();
+        rend.pickingFBO.setUniformLocs(rend.programs['picking']);
 
         return rend;
     }
@@ -255,9 +289,15 @@ export class Renderer {
             Utility.readFile(fragShaderFile)
         ]);
 
+        const pickingShaders = await Promise.all([
+            Utility.readFile(pickingVertFile),
+            Utility.readFile(pickingFragFile)
+        ]);
+
         return {
             'gridShaders': gridShaders,
-            'regularShaders': regularShaders
+            'regularShaders': regularShaders,
+            'pickingShaders': pickingShaders
         };
     }
 

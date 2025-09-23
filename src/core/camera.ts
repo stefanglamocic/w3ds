@@ -1,9 +1,9 @@
 import type { InputEvents } from "./input-events.js";
-import { Mat, type Vec3 } from "./math/mat.js";
+import { Mat, type Vec3 } from "../math/mat.js";
 
 export class Camera {
     private readonly movSens = 0.15;
-    private readonly rotSens = 0.1;
+    private readonly rotSens = 0.07;
     private readonly zoomSens = 0.01;
     private readonly panSens = 0.01;
 

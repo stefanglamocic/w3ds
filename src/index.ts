@@ -1,4 +1,4 @@
-import { Renderer } from "./renderer.js";
+import { Renderer } from "./rendering/renderer.js";
 
 var gl!: WebGL2RenderingContext;
 
