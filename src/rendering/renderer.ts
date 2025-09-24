@@ -7,6 +7,7 @@ import { Renderable } from "../object/renderable.js";
 import { ShaderProgram } from "./shader-program.js";
 import { Utility } from "../util/util.js";
 import { PickingFramebuffer } from "./picking-framebuffer.js";
+import { OutlineRenderer } from "./outline-renderer.js";
 
 const vertShaderFile = 'shaders/vertexShader.vert';
 const fragShaderFile = 'shaders/fragmentShader.frag';
@@ -14,6 +15,8 @@ const gridVertFile = 'shaders/grid.vert';
 const gridFragFile = 'shaders/grid.frag';
 const pickingVertFile = 'shaders/picking.vert';
 const pickingFragFile = 'shaders/picking.frag'
+const outlineVertFile = 'shaders/outline.vert';
+const outlineFragFile = 'shaders/outline.frag';
 
 var FOV = 60;
 var canvasSize: [number, number] = [window.innerWidth, window.innerHeight];
@@ -32,8 +35,10 @@ export class Renderer {
     private rendInstances = new Map<string, Renderable[]>();
     private renderables: Renderable[] = [];
     private loadedTextures: Record<string, {tex: WebGLTexture, refs: number}> = {};
+    private selectedRenderable: Renderable | null = null;
 
     private pickingFBO: PickingFramebuffer;
+    private outlineRenderer?: OutlineRenderer;
 
     private constructor(private gl: WebGL2RenderingContext,
         private canvas: HTMLCanvasElement) {
@@ -61,6 +66,8 @@ export class Renderer {
         this.camera.move(this.gl, Object.values(this.programs));
 
         for (const r of this.renderables) {
+            if (this.selectedRenderable)
+                this.outlineRenderer?.draw(this.selectedRenderable);
             r.draw();
         }
 
@@ -88,6 +95,12 @@ export class Renderer {
 
         const objID = this.pickingFBO.readPixel(x, y);
         console.log(objID);
+
+        this.selectedRenderable = null;
+
+        if (objID) {
+            this.selectedRenderable = this.renderables.find(r => r.ID === objID)!;
+        }
     };
 
     static async init(gl: WebGL2RenderingContext, canvas: HTMLCanvasElement) {
@@ -109,9 +122,15 @@ export class Renderer {
             shaderPairs.pickingShaders[1]
         ).getProgram();
 
+        rend.programs['outline'] = new ShaderProgram(gl, 
+            shaderPairs.outlineShaders[0],
+            shaderPairs.outlineShaders[1]
+        ).getProgram();
+
         rend.camera.move(gl, Object.values(rend.programs));
         rend.updateProjMat();
         rend.pickingFBO.setUniformLocs(rend.programs['picking']);
+        rend.outlineRenderer = new OutlineRenderer(gl, rend.programs['outline']);
 
         return rend;
     }
@@ -192,6 +211,9 @@ export class Renderer {
     }
 
     deleteObject(r: Renderable) {
+        if (this.selectedRenderable === r)
+            this.selectedRenderable = null;
+
         this.delArrEl(this.renderables, r);
         const tex = r.getTexture();
         if (tex !== null) {
@@ -274,6 +296,8 @@ export class Renderer {
     private resizeCanvas() {
         this.canvas.width = canvasSize[0];
         this.canvas.height = canvasSize[1];
+        if (this.pickingFBO)
+            this.pickingFBO.resizeTex(this.canvas.width, this.canvas.height);
 
         this.gl.viewport(0, 0, this.canvas.width, this.canvas.height);
     }
@@ -294,10 +318,16 @@ export class Renderer {
             Utility.readFile(pickingFragFile)
         ]);
 
+        const outlineShaders = await Promise.all([
+            Utility.readFile(outlineVertFile),
+            Utility.readFile(outlineFragFile)
+        ]);
+
         return {
             'gridShaders': gridShaders,
             'regularShaders': regularShaders,
-            'pickingShaders': pickingShaders
+            'pickingShaders': pickingShaders,
+            'outlineShaders': outlineShaders
         };
     }
 
