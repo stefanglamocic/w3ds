@@ -10,6 +10,8 @@ const rotIFile = 'res/icons/perpendicular-rings.svg';
 const scaleIFile = 'res/icons/resize.svg';
 const removeIFile = 'res/icons/trash-can.svg';
 
+var objInput!: HTMLInputElement;
+
 async function createSvgButton(file: string) {
     return Utility.readFile(file)
         .then(svgSource => {
@@ -29,6 +31,25 @@ async function createSvgButton(file: string) {
 }
 
 export async function addUiElements(renderer: Renderer) {
+    objInput = document.createElement('input');
+    objInput.hidden = true;
+    objInput.setAttribute('type', 'file');
+    objInput.setAttribute('accept', '.obj');
+    objInput.addEventListener('change', (e) => {
+        const file = objInput.files?.[0];
+        if (!file)
+            return;
+
+        const url = URL.createObjectURL(file);
+        try {
+            Utility.readFile(url)
+                .then(src => console.log(src));
+        }
+        finally {
+            URL.revokeObjectURL(url);
+        }
+    });
+
     const leftPane = document.createElement('div');
     leftPane.classList.add('left-pane');
     
@@ -43,12 +64,15 @@ export async function addUiElements(renderer: Renderer) {
     const rotBtn = await createSvgButton(rotIFile);
     const scaleBtn = await createSvgButton(scaleIFile);
 
+    const hideElements = () => {
+        hideElement(textureBtn);
+        hideElement(removeBtn);
+        hideElement(rightPane);
+    };
+
     const onObjectSelect = (r: Renderable | null) => {
         if (!r) {
-            hideElement(textureBtn);
-            hideElement(removeBtn);
-            hideElement(rightPane);
-
+            hideElements();
             return;
         }
 
@@ -61,17 +85,29 @@ export async function addUiElements(renderer: Renderer) {
             disableButton(textureBtn);
     };
 
+    renderer.setOnSelect(onObjectSelect);
+
+    importBtn.addEventListener('click', () => {
+        objInput.showPicker();
+    });
+
+    removeBtn.addEventListener('click', () => {
+        renderer.deleteSelectedObject();
+        hideElements();
+        renderer.debug();
+    });
+
     leftPane.append(importBtn, textureBtn, removeBtn);
     rightPane.append(moveBtn, rotBtn, scaleBtn);
 
     document.body.appendChild(leftPane);
     document.body.appendChild(rightPane);
 
-    hideElement(textureBtn);
-    hideElement(removeBtn);
-    hideElement(rightPane);
+    hideElements();
+}
 
-    renderer.setOnSelect(onObjectSelect);
+export function getObjectInput() {
+    return objInput;
 }
 
 function hideElement(el: HTMLElement) {

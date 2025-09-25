@@ -37,7 +37,7 @@ export class Renderer {
 
     private rendInstances = new Map<string, Renderable[]>();
     private renderables: Renderable[] = [];
-    private loadedTextures: Record<string, {tex: WebGLTexture, refs: number}> = {};
+    private loadedTextures: Record<string, { tex: WebGLTexture, refs: number }> = {};
     private selectedRenderable: Renderable | null = null;
 
     private pickingFBO: PickingFramebuffer;
@@ -86,7 +86,7 @@ export class Renderer {
     private onClick = (event: MouseEvent) => {
         const x = Math.floor(event.clientX);
         const y = Math.floor(this.canvas.height - event.clientY - 1);
-        
+
         this.pickingFBO.enableWriting();
 
         this.gl.clearBufferuiv(this.gl.COLOR, 0, new Uint32Array([0, 0, 0, 0]));
@@ -121,30 +121,17 @@ export class Renderer {
         Renderer.instance = rend;
         const shaderPairs = await Renderer.readShaderFiles();
 
-        rend.programs['grid'] = new ShaderProgram(gl,
-            shaderPairs.gridShaders[0],
-            shaderPairs.gridShaders[1]
-        ).getProgram();
-
-        rend.programs['regular'] = new ShaderProgram(gl,
-            shaderPairs.regularShaders[0],
-            shaderPairs.regularShaders[1]
-        ).getProgram();
-
-        rend.programs['picking'] = new ShaderProgram(gl,
-            shaderPairs.pickingShaders[0],
-            shaderPairs.pickingShaders[1]
-        ).getProgram();
-
-        rend.programs['outline'] = new ShaderProgram(gl, 
-            shaderPairs.outlineShaders[0],
-            shaderPairs.outlineShaders[1]
-        ).getProgram();
+        for (const [key, pair] of Object.entries(shaderPairs)) {
+            rend.programs[key] = new ShaderProgram(gl, 
+                pair[0],
+                pair[1]
+            ).getProgram();
+        }
 
         rend.camera.move(gl, Object.values(rend.programs));
         rend.updateProjMat();
-        rend.pickingFBO.setUniformLocs(rend.programs['picking']);
-        rend.outlineRenderer = new OutlineRenderer(gl, rend.programs['outline']);
+        rend.pickingFBO.setUniformLocs(rend.programs['picking']!);
+        rend.outlineRenderer = new OutlineRenderer(gl, rend.programs['outline']!);
 
         return rend;
     }
@@ -168,35 +155,61 @@ export class Renderer {
         this.gl.disable(this.gl.BLEND);
     }
 
-    async loadRegularModel(file: string) {
+    async loadRegularModel(file: File | string) {
         const program = this.programs['regular'];
         if (program === undefined)
             throw new Error("Regular shader program is missing!");
         return this.loadModel(file, program);
     }
 
-    async loadModel(file: string, program: WebGLProgram) {
-        if (this.rendInstances.has(file) && 
-            this.rendInstances.get(file)!.length > 0) {
-            const temp = this.rendInstances.get(file)![0]!;
+    async loadModel(file: File | string, program: WebGLProgram) {
+        let key = '';
+        let url = ''; 
+        if (file instanceof File) {
+            key = await this.hashFile(file);
+            url = URL.createObjectURL(file);
+        }
+        else {
+            key = file;
+            url = file;
+        }
+
+        if (this.rendInstances.has(key) &&
+            this.rendInstances.get(key)!.length > 0) {
+            const temp = this.rendInstances.get(key)![0]!;
             const mesh = temp.getMesh();
             const vao = temp.getVAO();
 
             const r = new Renderable(this.gl, mesh, program, vao);
-            this.rendInstances.get(file)?.push(r);
+            this.rendInstances.get(key)?.push(r);
             this.renderables.push(r);
 
             return r;
         }
-        return Utility.readFile(file)
-            .then(source => {
-                const mesh = Utility.parseObj(source).buildMesh();
-                const r = new Renderable(this.gl, mesh, program);
-                this.rendInstances.set(file, [r]);
-                this.renderables.push(r);
 
-                return r;
-            });
+        try {
+            return Utility.readFile(url)
+                .then(source => {
+                    const mesh = Utility.parseObj(source).buildMesh();
+                    const r = new Renderable(this.gl, mesh, program);
+                    this.rendInstances.set(key, [r]);
+                    this.renderables.push(r);
+
+                    return r;
+                });
+        }
+        finally {
+            URL.revokeObjectURL(url);
+        }
+    }
+
+    private async hashFile(file: File) {
+        const arrBuff = await file.arrayBuffer();
+        const hashBuff = await crypto.subtle.digest('SHA256', arrBuff);
+
+        return Array.from(new Uint8Array(hashBuff))
+            .map(b => b.toString(16).padStart(2, '0'))
+            .join('');
     }
 
     loadCube() {
@@ -205,14 +218,14 @@ export class Renderer {
         if (program === undefined)
             throw new Error("Regular shader program is missing!");
 
-        if (this.rendInstances.has(objName) && 
+        if (this.rendInstances.has(objName) &&
             this.rendInstances.get(objName)!.length > 0) {
-                const temp = this.rendInstances.get(objName)![0]!;
-                const r = new Renderable(this.gl, temp.getMesh(), program, temp.getVAO());
-                this.rendInstances.get(objName)?.push(r);
-                this.renderables.push(r);
+            const temp = this.rendInstances.get(objName)![0]!;
+            const r = new Renderable(this.gl, temp.getMesh(), program, temp.getVAO());
+            this.rendInstances.get(objName)?.push(r);
+            this.renderables.push(r);
 
-                return r;
+            return r;
         }
         else {
             const cubeMesh = buildCube();
@@ -224,7 +237,15 @@ export class Renderer {
         }
     }
 
-    deleteObject(r: Renderable) {
+    getSelectedRenderable() { return this.selectedRenderable; }
+
+    deleteSelectedObject() {
+        this.deleteObject(this.selectedRenderable);
+    }
+
+    deleteObject(r: Renderable | null) {
+        if (!r)
+            return;
         if (this.selectedRenderable === r)
             this.selectedRenderable = null;
 
@@ -240,7 +261,15 @@ export class Renderer {
             }
         }
 
-        for (const rends of this.rendInstances.values()) {
+        this.deleteFromInstances(this.rendInstances, r);
+
+    }
+
+    private deleteFromInstances(
+        instances: Map<string, Renderable[]>,
+        r: Renderable
+    ) {
+        for (const rends of instances.values()) {
             if (rends.length > 0 && rends[0]!.getVAO() === r.getVAO()) {
                 this.delArrEl(rends, r);
                 if (rends.length === 0) {
@@ -249,7 +278,6 @@ export class Renderer {
                 break;
             }
         }
-
     }
 
     async loadTexture(file: string, program: WebGLProgram) {
@@ -269,19 +297,19 @@ export class Renderer {
                     this.gl.UNSIGNED_BYTE,
                     img
                 );
-                this.gl.texParameteri(this.gl.TEXTURE_2D, 
-                    this.gl.TEXTURE_MAG_FILTER, 
+                this.gl.texParameteri(this.gl.TEXTURE_2D,
+                    this.gl.TEXTURE_MAG_FILTER,
                     this.gl.LINEAR
                 );
-                this.gl.texParameteri(this.gl.TEXTURE_2D, 
-                    this.gl.TEXTURE_MIN_FILTER, 
+                this.gl.texParameteri(this.gl.TEXTURE_2D,
+                    this.gl.TEXTURE_MIN_FILTER,
                     this.gl.LINEAR_MIPMAP_LINEAR
                 );
                 this.gl.generateMipmap(this.gl.TEXTURE_2D);
 
                 this.gl.bindTexture(this.gl.TEXTURE_2D, null);
 
-                this.loadedTextures[file] = {tex: texture, refs: 1};
+                this.loadedTextures[file] = { tex: texture, refs: 1 };
 
                 return texture;
             });
@@ -338,10 +366,10 @@ export class Renderer {
         ]);
 
         return {
-            'gridShaders': gridShaders,
-            'regularShaders': regularShaders,
-            'pickingShaders': pickingShaders,
-            'outlineShaders': outlineShaders
+            'grid': gridShaders,
+            'regular': regularShaders,
+            'picking': pickingShaders,
+            'outline': outlineShaders
         };
     }
 
