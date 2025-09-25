@@ -237,6 +237,10 @@ export class Renderer {
         }
     }
 
+    selectRenderable(r: Renderable) {
+        this.selectedRenderable = r;
+    }
+
     getSelectedRenderable() { return this.selectedRenderable; }
 
     deleteSelectedObject() {

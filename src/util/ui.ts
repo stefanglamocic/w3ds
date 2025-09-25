@@ -31,21 +31,9 @@ async function createSvgButton(file: string) {
 }
 
 export async function addUiElements(renderer: Renderer) {
-    objInput = document.createElement('input');
-    objInput.hidden = true;
-    objInput.setAttribute('type', 'file');
-    objInput.setAttribute('accept', '.obj');
-    objInput.addEventListener('change', (e) => {
-        const file = objInput.files?.[0];
-        if (!file)
-            return;
-
-        renderer.loadRegularModel(file);
-    });
-
     const leftPane = document.createElement('div');
     leftPane.classList.add('left-pane');
-    
+
     const rightPane = document.createElement('div');
     rightPane.classList.add('right-pane');
 
@@ -63,12 +51,7 @@ export async function addUiElements(renderer: Renderer) {
         hideElement(rightPane);
     };
 
-    const onObjectSelect = (r: Renderable | null) => {
-        if (!r) {
-            hideElements();
-            return;
-        }
-
+    const showElements = (r: Renderable) => {
         showElement(rightPane);
         showElement(textureBtn);
         showElement(removeBtn);
@@ -77,6 +60,31 @@ export async function addUiElements(renderer: Renderer) {
         if (!r.isTexturable())
             disableButton(textureBtn);
     };
+
+    const onObjectSelect = (r: Renderable | null) => {
+        if (!r) {
+            hideElements();
+            return;
+        }
+
+        showElements(r);
+    };
+
+    objInput = document.createElement('input');
+    objInput.hidden = true;
+    objInput.setAttribute('type', 'file');
+    objInput.setAttribute('accept', '.obj');
+    objInput.addEventListener('change', () => {
+        const file = objInput.files?.[0];
+        if (!file)
+            return;
+
+        renderer.loadRegularModel(file)
+            .then(r => {
+                renderer.selectRenderable(r);
+                showElements(r);
+            });
+    });
 
     renderer.setOnSelect(onObjectSelect);
 
