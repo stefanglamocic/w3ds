@@ -36,6 +36,4 @@ async function main() {
     cube.move({x: 3.12, y: 0, z: -0.7, theta: 45, phi: 0});
     renderer.loadCube().move({x: -5.4, y: 0, z: -6.7, theta: 12, phi: 90});
 
-    renderer.debug();
-
 }

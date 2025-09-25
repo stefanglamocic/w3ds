@@ -40,14 +40,7 @@ export async function addUiElements(renderer: Renderer) {
         if (!file)
             return;
 
-        const url = URL.createObjectURL(file);
-        try {
-            Utility.readFile(url)
-                .then(src => console.log(src));
-        }
-        finally {
-            URL.revokeObjectURL(url);
-        }
+        renderer.loadRegularModel(file);
     });
 
     const leftPane = document.createElement('div');
@@ -94,7 +87,6 @@ export async function addUiElements(renderer: Renderer) {
     removeBtn.addEventListener('click', () => {
         renderer.deleteSelectedObject();
         hideElements();
-        renderer.debug();
     });
 
     leftPane.append(importBtn, textureBtn, removeBtn);

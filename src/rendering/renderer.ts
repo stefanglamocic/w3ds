@@ -205,7 +205,7 @@ export class Renderer {
 
     private async hashFile(file: File) {
         const arrBuff = await file.arrayBuffer();
-        const hashBuff = await crypto.subtle.digest('SHA256', arrBuff);
+        const hashBuff = await crypto.subtle.digest('SHA-256', arrBuff);
 
         return Array.from(new Uint8Array(hashBuff))
             .map(b => b.toString(16).padStart(2, '0'))
