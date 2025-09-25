@@ -23,6 +23,9 @@ var canvasSize: [number, number] = [window.innerWidth, window.innerHeight];
 const clearColor: [number, number, number, number] = [0.16, 0.16, 0.16, 1.0];
 
 export class Renderer {
+    private static instance: Renderer | null = null;
+    private onSelect: ((r: Renderable | null) => void) | null = null;
+
     private programs: { [key: string]: WebGLProgram } = {};
 
     private projMat: number[];
@@ -45,7 +48,7 @@ export class Renderer {
         window.addEventListener('resize', () => canvasSize = [window.innerWidth, window.innerHeight]);
         this.setContextState();
         this.projMat = Mat.getProjectionMat(FOV, canvas.width / canvas.height, 1, 100);
-        this.inputEvents = new InputEvents();
+        this.inputEvents = new InputEvents(canvas);
         this.inputEvents.setClickCallback(this.onClick);
         this.camera = new Camera(this.inputEvents, this.viewMat);
         this.pickingFBO = new PickingFramebuffer(gl, canvas.width, canvas.height);
@@ -76,6 +79,10 @@ export class Renderer {
         requestAnimationFrame(this.run);
     }
 
+    setOnSelect(callback: (r: Renderable | null) => void) {
+        this.onSelect = callback;
+    }
+
     private onClick = (event: MouseEvent) => {
         const x = Math.floor(event.clientX);
         const y = Math.floor(this.canvas.height - event.clientY - 1);
@@ -101,10 +108,17 @@ export class Renderer {
         if (objID) {
             this.selectedRenderable = this.renderables.find(r => r.ID === objID)!;
         }
+
+        if (this.onSelect)
+            this.onSelect(this.selectedRenderable);
     };
 
     static async init(gl: WebGL2RenderingContext, canvas: HTMLCanvasElement) {
+        if (Renderer.instance)
+            return Renderer.instance;
+
         const rend = new Renderer(gl, canvas);
+        Renderer.instance = rend;
         const shaderPairs = await Renderer.readShaderFiles();
 
         rend.programs['grid'] = new ShaderProgram(gl,

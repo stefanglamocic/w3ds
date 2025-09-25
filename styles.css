@@ -1,0 +1,77 @@
+* {
+    margin: 0;
+    box-sizing: border-box;
+}
+
+html,
+body {
+    height: 100%;
+}
+
+canvas {
+    position: absolute;
+    height: 100%;
+    width: 100%;
+    background-color: #000000;
+}
+
+.left-pane {
+    position: absolute;
+    left: 4px;
+    top: 4px;
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-start;
+    align-items: center;
+    gap: 6px;
+    padding: 4px;
+    background-color: rgba(68, 68, 68, 0.555);
+    border-radius: 3px;
+}
+
+.right-pane {
+    display: flex;
+    flex-direction: column;
+    position: absolute;
+    right: 4px;
+    top: 50%;
+    transform: translateY(-50%);
+    justify-content: center;
+    align-items: center;
+    gap: 6px;
+    padding: 4px;
+    background-color: rgba(68, 68, 68, 0.555);
+    border-radius: 3px;
+}
+
+.svg-btn {
+    z-index: 9999;
+    padding: 0;
+    border: 0;
+    border-radius: 5px;
+    width: 50px;
+    height: 50px;
+}
+
+.svg-btn.disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.svg-btn.disabled:hover svg path {
+    filter: none;
+} 
+
+.svg-btn svg {
+    height: 100% !important;
+    width: 100% !important;
+}
+
+.svg-btn svg path {
+    filter: none;
+    fill: #ffffff;
+}
+
+.svg-btn:hover svg path {
+    filter: url(#shadow-1);
+}

@@ -1,4 +1,5 @@
 import { Renderer } from "./rendering/renderer.js";
+import { addUiElements } from "./util/ui.js";
 
 var gl!: WebGL2RenderingContext;
 
@@ -21,6 +22,8 @@ async function main() {
     const renderer = await Renderer.init(gl, canvas);
     renderer.enableGrid();
     renderer.run();
+
+    addUiElements(renderer);
 
     const obj = await renderer.loadRegularModel('res/garbage-truck.obj')
         .then(r => {

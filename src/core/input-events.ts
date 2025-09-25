@@ -4,17 +4,18 @@ export class InputEvents {
     zoomDelta = 0;
 
     private activeKeys: Record<string, boolean> = {};
+    leftMActive = false;
     middleMActive = false;
     rightMActive = false;
     private mousePos: [number, number] = [0, 0]; 
 
     private clickCallback: ((event: MouseEvent) => void) | null = null;
 
-    constructor() {
+    constructor(canvas: HTMLCanvasElement) {
         window.addEventListener('keydown', (event) => this.activeKeys[event.key] = true);
         window.addEventListener('keyup', (event) => this.activeKeys[event.key] = false);
-        window.addEventListener('mousedown', this.onMouseDown);
-        window.addEventListener('mouseup', this.onMouseUp);
+        canvas.addEventListener('mousedown', this.onMouseDown);
+        canvas.addEventListener('mouseup', this.onMouseUp);
         window.addEventListener('mousemove', this.onMouseMove);
         window.addEventListener('contextmenu', event => event.preventDefault());
         window.addEventListener('wheel', event => this.zoomDelta += event.deltaY);
@@ -32,6 +33,7 @@ export class InputEvents {
         this.mousePos = [event.clientX, event.clientY];
         
         if (event.button === 0 && this.clickCallback) {
+            this.leftMActive = true;
             this.clickCallback(event);
         }
 
@@ -47,6 +49,9 @@ export class InputEvents {
     }
 
     private onMouseUp = (event: MouseEvent) => {
+        if (event.button === 0)
+            this.leftMActive = false;
+
         if (event.button === 1)
             this.middleMActive = false;
 
