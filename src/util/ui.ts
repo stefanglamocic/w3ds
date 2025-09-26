@@ -10,7 +10,15 @@ const rotIFile = 'res/icons/perpendicular-rings.svg';
 const scaleIFile = 'res/icons/resize.svg';
 const removeIFile = 'res/icons/trash-can.svg';
 
+enum TransformationState {
+    IDLE,
+    MOVE,
+    ROTATION,
+    SCALE
+};
+
 var objInput!: HTMLInputElement;
+let gState = TransformationState.IDLE;
 
 async function createSvgButton(file: string) {
     return Utility.readFile(file)
@@ -44,6 +52,9 @@ export async function addUiElements(renderer: Renderer) {
     const moveBtn = await createSvgButton(moveIFile);
     const rotBtn = await createSvgButton(rotIFile);
     const scaleBtn = await createSvgButton(scaleIFile);
+
+    leftPane.append(importBtn, textureBtn, removeBtn);
+    rightPane.append(moveBtn, rotBtn, scaleBtn);
 
     const hideElements = () => {
         hideElement(textureBtn);
@@ -97,13 +108,39 @@ export async function addUiElements(renderer: Renderer) {
         hideElements();
     });
 
-    leftPane.append(importBtn, textureBtn, removeBtn);
-    rightPane.append(moveBtn, rotBtn, scaleBtn);
+
+    moveBtn.addEventListener('click', 
+        () => onStateChange(TransformationState.MOVE, moveBtn)
+    );
+
+    rotBtn.addEventListener('click', 
+        () => onStateChange(TransformationState.ROTATION, rotBtn)
+    );
+
+    scaleBtn.addEventListener('click',
+        () => onStateChange(TransformationState.SCALE, scaleBtn)
+    );
 
     document.body.appendChild(leftPane);
     document.body.appendChild(rightPane);
 
     hideElements();
+}
+
+function onStateChange(state: TransformationState, btn: HTMLButtonElement) {
+    if (gState === state) {
+        gState = TransformationState.IDLE;
+        btn.classList.remove('active');
+
+        return;
+    }
+
+    const pane = btn.parentElement!;
+    for (const b of pane.children)
+        b.classList.remove('active');
+
+    gState = state;
+    btn.classList.add('active');
 }
 
 export function getObjectInput() {

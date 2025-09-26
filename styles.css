@@ -53,6 +53,14 @@ canvas {
     height: 50px;
 }
 
+.svg-btn.active {
+    border: solid 2px #444444 !important;
+}
+
+.svg-btn.active svg path {
+    fill: #ff8033;
+}
+
 .svg-btn.disabled {
     opacity: 0.5;
     cursor: not-allowed;
