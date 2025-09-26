@@ -9,6 +9,8 @@ const moveIFile = 'res/icons/move.svg';
 const rotIFile = 'res/icons/perpendicular-rings.svg';
 const scaleIFile = 'res/icons/resize.svg';
 const removeIFile = 'res/icons/trash-can.svg';
+const expandIFile = 'res/icons/expand.svg';
+const contractIFile = 'res/icons/contract.svg';
 
 enum TransformationState {
     IDLE,
@@ -19,6 +21,8 @@ enum TransformationState {
 
 var objInput!: HTMLInputElement;
 var texInput!: HTMLInputElement;
+var bottomPane: HTMLDivElement;
+var gizmo!: HTMLDivElement;
 let gState = TransformationState.IDLE;
 
 async function createSvgButton(file: string) {
@@ -46,6 +50,9 @@ export async function addUiElements(renderer: Renderer) {
     const rightPane = document.createElement('div');
     rightPane.classList.add('right-pane');
 
+    bottomPane = document.createElement('div');
+    bottomPane.classList.add('bottom-pane');
+
     const importBtn = await createSvgButton(cubeIFile);
     const textureBtn = await createSvgButton(brushIFile);
     const removeBtn = await createSvgButton(removeIFile);
@@ -54,13 +61,26 @@ export async function addUiElements(renderer: Renderer) {
     const rotBtn = await createSvgButton(rotIFile);
     const scaleBtn = await createSvgButton(scaleIFile);
 
+    const expandBtn = await createSvgButton(expandIFile);
+    expandBtn.classList.add('scale-btn');
+    const contractBtn = await createSvgButton(contractIFile);
+    contractBtn.classList.add('scale-btn');
+
+    const scaleCont = document.createElement('div');
+    scaleCont.classList.add('scale-cont');
+    scaleCont.append(expandBtn, contractBtn);
+
+    createGizmo();
+
     leftPane.append(importBtn, textureBtn, removeBtn);
     rightPane.append(moveBtn, rotBtn, scaleBtn);
+    bottomPane.append(gizmo, scaleCont);
 
     const hideElements = () => {
         hideElement(textureBtn);
         hideElement(removeBtn);
         hideElement(rightPane);
+        hideElement(bottomPane);
     };
 
     const showElements = (r: Renderable) => {
@@ -76,6 +96,7 @@ export async function addUiElements(renderer: Renderer) {
     const onObjectSelect = (r: Renderable | null) => {
         if (!r) {
             hideElements();
+            resetState(rightPane);
             return;
         }
 
@@ -113,8 +134,33 @@ export async function addUiElements(renderer: Renderer) {
 
     document.body.appendChild(leftPane);
     document.body.appendChild(rightPane);
+    document.body.appendChild(bottomPane);
 
     hideElements();
+}
+
+function createGizmo() {
+    gizmo = document.createElement('div');
+    gizmo.classList.add('gizmo');
+
+    const y = createAxis('y-wrapper', 'y');
+    const my = createAxis('my-wrapper', 'my');
+    const x = createAxis('x-wrapper', 'x');
+    const mx = createAxis('mx-wrapper', 'mx');
+    const z = createAxis('z-wrapper', 'z');
+    const mz = createAxis('mz-wrapper', 'mz');
+
+    gizmo.append(y, my, x, mx, z, mz);
+}
+
+function createAxis(wrapClass: string, axisClass: string) {
+    const axisWrap = document.createElement('div');
+    axisWrap.classList.add('axis-wrapper', wrapClass);
+    const axis = document.createElement('div');
+    axis.classList.add('axis', axisClass);
+    axisWrap.appendChild(axis);
+
+    return axisWrap;
 }
 
 function initObjInput(renderer: Renderer, showElements: (r: Renderable) => void) {
@@ -155,6 +201,7 @@ function onStateChange(state: TransformationState, btn: HTMLButtonElement) {
     if (gState === state) {
         gState = TransformationState.IDLE;
         btn.classList.remove('active');
+        hideElement(bottomPane);
 
         return;
     }
@@ -165,6 +212,14 @@ function onStateChange(state: TransformationState, btn: HTMLButtonElement) {
 
     gState = state;
     btn.classList.add('active');
+    showElement(bottomPane);
+}
+
+function resetState(pane: HTMLDivElement) {
+    for (const btn of pane.children)
+        btn.classList.remove('active');
+
+    gState = TransformationState.IDLE;
 }
 
 export function getObjectInput() {
