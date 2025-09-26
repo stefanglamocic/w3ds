@@ -284,13 +284,25 @@ export class Renderer {
         }
     }
 
-    async loadTexture(file: string, program: WebGLProgram) {
-        if (file in this.loadedTextures && this.loadedTextures[file]!.refs > 0) {
-            this.loadedTextures[file]!.refs++;
-            return this.loadedTextures[file]!.tex;
+    async loadTexture(file: string | File, program: WebGLProgram) {
+        let url = '';
+        let key = '';
+
+        if (file instanceof File) {
+            url = URL.createObjectURL(file);
+            key = await this.hashFile(file);
+        }
+        else {
+            url = file;
+            key = file;
+        }
+
+        if (key in this.loadedTextures && this.loadedTextures[key]!.refs > 0) {
+            this.loadedTextures[key]!.refs++;
+            return this.loadedTextures[key]!.tex;
         }
         const texture = this.gl.createTexture();
-        return Utility.loadImage(file)
+        return Utility.loadImage(url)
             .then(img => {
                 this.gl.bindTexture(this.gl.TEXTURE_2D, texture);
                 this.gl.pixelStorei(this.gl.UNPACK_FLIP_Y_WEBGL, true);
@@ -313,7 +325,7 @@ export class Renderer {
 
                 this.gl.bindTexture(this.gl.TEXTURE_2D, null);
 
-                this.loadedTextures[file] = { tex: texture, refs: 1 };
+                this.loadedTextures[key] = { tex: texture, refs: 1 };
 
                 return texture;
             });

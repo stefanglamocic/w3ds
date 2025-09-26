@@ -18,6 +18,7 @@ enum TransformationState {
 };
 
 var objInput!: HTMLInputElement;
+var texInput!: HTMLInputElement;
 let gState = TransformationState.IDLE;
 
 async function createSvgButton(file: string) {
@@ -81,27 +82,16 @@ export async function addUiElements(renderer: Renderer) {
         showElements(r);
     };
 
-    objInput = document.createElement('input');
-    objInput.hidden = true;
-    objInput.setAttribute('type', 'file');
-    objInput.setAttribute('accept', '.obj');
-    objInput.addEventListener('change', () => {
-        const file = objInput.files?.[0];
-        if (!file)
-            return;
-
-        renderer.loadRegularModel(file)
-            .then(r => {
-                renderer.selectRenderable(r);
-                showElements(r);
-            });
-    });
+    initObjInput(renderer, showElements);
+    initTexInput(renderer);
 
     renderer.setOnSelect(onObjectSelect);
 
     importBtn.addEventListener('click', () => {
         objInput.showPicker();
     });
+
+    textureBtn.addEventListener('click', () => texInput.showPicker());
 
     removeBtn.addEventListener('click', () => {
         renderer.deleteSelectedObject();
@@ -125,6 +115,40 @@ export async function addUiElements(renderer: Renderer) {
     document.body.appendChild(rightPane);
 
     hideElements();
+}
+
+function initObjInput(renderer: Renderer, showElements: (r: Renderable) => void) {
+    objInput = document.createElement('input');
+    objInput.hidden = true;
+    objInput.setAttribute('type', 'file');
+    objInput.setAttribute('accept', '.obj');
+    objInput.addEventListener('change', () => {
+        const file = objInput.files?.[0];
+        if (!file)
+            return;
+
+        renderer.loadRegularModel(file)
+            .then(r => {
+                renderer.selectRenderable(r);
+                showElements(r);
+            });
+    });
+}
+
+function initTexInput(renderer: Renderer) {
+    texInput = document.createElement('input');
+    texInput.hidden = true;
+    texInput.setAttribute('type', 'file');
+    texInput.setAttribute('accept', '.jpg,.png');
+    texInput.addEventListener('change', () => {
+        const file = texInput.files?.[0];
+        if (!file)
+            return;
+
+        const r = renderer.getSelectedRenderable()!;
+        renderer.loadTexture(file, r.getProgram())
+            .then(tex => r.setTexture(tex));
+    });
 }
 
 function onStateChange(state: TransformationState, btn: HTMLButtonElement) {
