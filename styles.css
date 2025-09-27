@@ -15,6 +15,19 @@ canvas {
     background-color: #000000;
 }
 
+.info-pane {
+    position: absolute;
+    top: 0;
+    right: 0;
+    padding: 8px;
+}
+
+.info-lbl {
+    display: block;
+    color: white;
+    font-size: small;
+}
+
 .left-pane {
     position: absolute;
     left: 4px;

@@ -114,6 +114,8 @@ export class Renderable {
         this.updateMatrices();
     }
 
+    getScale() { return this.scale; }
+
     private updateMatrices() {
         Mat.setIdentityMat(this.modelMat);
         

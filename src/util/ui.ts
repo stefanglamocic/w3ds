@@ -28,6 +28,9 @@ var transLbl: HTMLLabelElement;
 let gState = TransformationState.IDLE;
 var intervalID: number;
 
+var posLbl: HTMLLabelElement;
+var scaleLbl: HTMLLabelElement;
+
 const movDelta = 0.15;
 const rotDelta = 0.85;
 const scaleDelta = 0.05;
@@ -82,6 +85,14 @@ export async function addUiElements(renderer: Renderer) {
     transLbl = document.createElement('label');
     transLbl.classList.add('trans-lbl');
 
+    const infoPane = document.createElement('div');
+    infoPane.classList.add('info-pane');
+    posLbl = document.createElement('label');
+    posLbl.classList.add('info-lbl');
+    scaleLbl = document.createElement('label');
+    scaleLbl.classList.add('info-lbl');
+    infoPane.append(posLbl, scaleLbl);
+
     leftPane.append(importBtn, textureBtn, removeBtn);
     rightPane.append(moveBtn, rotBtn, scaleBtn);
     bottomPane.append(transLbl, gizmo, scaleCont);
@@ -92,12 +103,14 @@ export async function addUiElements(renderer: Renderer) {
         hideElement(rightPane);
         hideElement(bottomPane);
         hideElement(scaleCont);
+        hideElement(infoPane);
     };
 
     const showElements = (r: Renderable) => {
         showElement(rightPane);
         showElement(textureBtn);
         showElement(removeBtn);
+        showElement(infoPane);
         enableButton(textureBtn);
 
         if (!r.isTexturable())
@@ -112,6 +125,7 @@ export async function addUiElements(renderer: Renderer) {
         }
 
         showElements(r);
+        setInfoLabels(r);
     };
 
     initObjInput(renderer, showElements);
@@ -128,14 +142,15 @@ export async function addUiElements(renderer: Renderer) {
     removeBtn.addEventListener('click', () => {
         renderer.deleteSelectedObject();
         hideElements();
+        resetState(rightPane);
     });
 
 
-    moveBtn.addEventListener('click', 
+    moveBtn.addEventListener('click',
         () => onStateChange(TransformationState.MOVE, moveBtn)
     );
 
-    rotBtn.addEventListener('click', 
+    rotBtn.addEventListener('click',
         () => onStateChange(TransformationState.ROTATION, rotBtn)
     );
 
@@ -144,23 +159,39 @@ export async function addUiElements(renderer: Renderer) {
     );
 
     expandBtn.addEventListener('click', () => {
-        renderer.getSelectedRenderable()?.scaleX(scaleDelta);
-        renderer.getSelectedRenderable()?.scaleY(scaleDelta);
-        renderer.getSelectedRenderable()?.scaleZ(scaleDelta);
+        const r = renderer.getSelectedRenderable();
+
+        r?.scaleX(scaleDelta);
+        r?.scaleY(scaleDelta);
+        r?.scaleZ(scaleDelta);
+
+        setInfoLabels(r!);
     });
 
     contractBtn.addEventListener('click', () => {
-        renderer.getSelectedRenderable()?.scaleX(-scaleDelta);
-        renderer.getSelectedRenderable()?.scaleY(-scaleDelta);
-        renderer.getSelectedRenderable()?.scaleZ(-scaleDelta);
+        const r = renderer.getSelectedRenderable();
+
+        r?.scaleX(-scaleDelta);
+        r?.scaleY(-scaleDelta);
+        r?.scaleZ(-scaleDelta);
+
+        setInfoLabels(r!);
     });
 
     document.body.appendChild(leftPane);
     document.body.appendChild(rightPane);
     document.body.appendChild(bottomPane);
+    document.body.appendChild(infoPane);
 
     hideElements();
 }
+
+function setInfoLabels(r: Renderable) {
+    const pos = r.getPosition();
+    const scale = r.getScale();
+    posLbl.textContent = `x: ${pos.x.toFixed(2)} y: ${pos.y.toFixed(2)} z: ${pos.z.toFixed(2)} t: ${pos.theta.toFixed(2)} p: ${pos.phi.toFixed(2)} g: ${pos.gamma.toFixed(2)}`;
+    scaleLbl.textContent = `Sx: ${scale.x.toFixed(2)} Sy: ${scale.y.toFixed(2)} Sz: ${scale.z.toFixed(2)}`;
+};
 
 function createGizmo(renderer: Renderer) {
     gizmo = document.createElement('div');
@@ -178,16 +209,17 @@ function createGizmo(renderer: Renderer) {
     const methodMap = createMethodMap();
 
     for (const node of gizmo.children) {
-        node.addEventListener('mousedown', 
+        node.addEventListener('mousedown',
             () => gizmoMouseDown(renderer, methodMap, node as HTMLDivElement));
-        node.addEventListener('mouseup', gizmoMouseUp);
     }
+
+    window.addEventListener('mouseup', () => window.clearInterval(intervalID));
 }
 
-function gizmoMouseDown(renderer: Renderer, 
+function gizmoMouseDown(renderer: Renderer,
     methodMap: Record<string, (r: Renderable) => void>,
     axis: HTMLDivElement
-    ) {
+) {
     intervalID = window.setInterval(() => {
         const axId = axis.className.split(' ')[1]?.split('-')[0];
         const selectedObj = renderer.getSelectedRenderable()!;
@@ -197,11 +229,9 @@ function gizmoMouseDown(renderer: Renderer,
             methodMap[key]!(selectedObj);
         }
 
-    }, 50);
-}
+        setInfoLabels(selectedObj);
 
-function gizmoMouseUp() {
-    window.clearInterval(intervalID);
+    }, 50);
 }
 
 function createMethodMap() {
@@ -215,10 +245,10 @@ function createMethodMap() {
 
         [TransformationState.ROTATION + "x"]: (r: Renderable) => r.rotX(rotDelta),
         [TransformationState.ROTATION + "mx"]: (r: Renderable) => r.rotX(-rotDelta),
-        [TransformationState.ROTATION + "y"] : (r: Renderable) => r.rotY(rotDelta),
-        [TransformationState.ROTATION + "my"] : (r: Renderable) => r.rotY(-rotDelta),
-        [TransformationState.ROTATION + "z"] : (r: Renderable) => r.rotZ(rotDelta),
-        [TransformationState.ROTATION + "mz"] : (r: Renderable) => r.rotZ(-rotDelta),
+        [TransformationState.ROTATION + "y"]: (r: Renderable) => r.rotY(rotDelta),
+        [TransformationState.ROTATION + "my"]: (r: Renderable) => r.rotY(-rotDelta),
+        [TransformationState.ROTATION + "z"]: (r: Renderable) => r.rotZ(rotDelta),
+        [TransformationState.ROTATION + "mz"]: (r: Renderable) => r.rotZ(-rotDelta),
 
         [TransformationState.SCALE + "x"]: (r: Renderable) => r.scaleX(scaleDelta),
         [TransformationState.SCALE + "mx"]: (r: Renderable) => r.scaleX(-scaleDelta),
@@ -289,7 +319,7 @@ function onStateChange(state: TransformationState, btn: HTMLButtonElement) {
         case TransformationState.ROTATION:
             transLbl.textContent = "Rotate";
             break;
-        case TransformationState.SCALE: 
+        case TransformationState.SCALE:
             transLbl.textContent = "Scale";
             break;
     };

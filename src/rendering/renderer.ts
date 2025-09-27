@@ -101,7 +101,6 @@ export class Renderer {
         this.pickingFBO.disableWriting();
 
         const objID = this.pickingFBO.readPixel(x, y);
-        console.log(objID);
 
         this.selectedRenderable = null;
 
