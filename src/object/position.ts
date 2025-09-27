@@ -3,7 +3,8 @@ export type Position = {
     y: number,
     z: number,
     theta: number, //rotation around y axis
-    phi: number    //rotation around x axis
+    phi: number,    //rotation around x axis
+    gamma: number
 };
 
 export function defaultPosition(): Position {
@@ -12,6 +13,7 @@ export function defaultPosition(): Position {
         y: 0,
         z: 0,
         theta: 0,
-        phi: 0
+        phi: 0,
+        gamma: 0
     };
 }

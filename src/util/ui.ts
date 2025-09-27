@@ -23,7 +23,14 @@ var objInput!: HTMLInputElement;
 var texInput!: HTMLInputElement;
 var bottomPane: HTMLDivElement;
 var gizmo!: HTMLDivElement;
+var scaleCont: HTMLDivElement;
+var transLbl: HTMLLabelElement;
 let gState = TransformationState.IDLE;
+var intervalID: number;
+
+const movDelta = 0.15;
+const rotDelta = 0.85;
+const scaleDelta = 0.05;
 
 async function createSvgButton(file: string) {
     return Utility.readFile(file)
@@ -66,21 +73,25 @@ export async function addUiElements(renderer: Renderer) {
     const contractBtn = await createSvgButton(contractIFile);
     contractBtn.classList.add('scale-btn');
 
-    const scaleCont = document.createElement('div');
+    scaleCont = document.createElement('div');
     scaleCont.classList.add('scale-cont');
     scaleCont.append(expandBtn, contractBtn);
 
-    createGizmo();
+    createGizmo(renderer);
+
+    transLbl = document.createElement('label');
+    transLbl.classList.add('trans-lbl');
 
     leftPane.append(importBtn, textureBtn, removeBtn);
     rightPane.append(moveBtn, rotBtn, scaleBtn);
-    bottomPane.append(gizmo, scaleCont);
+    bottomPane.append(transLbl, gizmo, scaleCont);
 
     const hideElements = () => {
         hideElement(textureBtn);
         hideElement(removeBtn);
         hideElement(rightPane);
         hideElement(bottomPane);
+        hideElement(scaleCont);
     };
 
     const showElements = (r: Renderable) => {
@@ -132,6 +143,18 @@ export async function addUiElements(renderer: Renderer) {
         () => onStateChange(TransformationState.SCALE, scaleBtn)
     );
 
+    expandBtn.addEventListener('click', () => {
+        renderer.getSelectedRenderable()?.scaleX(scaleDelta);
+        renderer.getSelectedRenderable()?.scaleY(scaleDelta);
+        renderer.getSelectedRenderable()?.scaleZ(scaleDelta);
+    });
+
+    contractBtn.addEventListener('click', () => {
+        renderer.getSelectedRenderable()?.scaleX(-scaleDelta);
+        renderer.getSelectedRenderable()?.scaleY(-scaleDelta);
+        renderer.getSelectedRenderable()?.scaleZ(-scaleDelta);
+    });
+
     document.body.appendChild(leftPane);
     document.body.appendChild(rightPane);
     document.body.appendChild(bottomPane);
@@ -139,7 +162,7 @@ export async function addUiElements(renderer: Renderer) {
     hideElements();
 }
 
-function createGizmo() {
+function createGizmo(renderer: Renderer) {
     gizmo = document.createElement('div');
     gizmo.classList.add('gizmo');
 
@@ -151,6 +174,59 @@ function createGizmo() {
     const mz = createAxis('mz-wrapper', 'mz');
 
     gizmo.append(y, my, x, mx, z, mz);
+
+    const methodMap = createMethodMap();
+
+    for (const node of gizmo.children) {
+        node.addEventListener('mousedown', 
+            () => gizmoMouseDown(renderer, methodMap, node as HTMLDivElement));
+        node.addEventListener('mouseup', gizmoMouseUp);
+    }
+}
+
+function gizmoMouseDown(renderer: Renderer, 
+    methodMap: Record<string, (r: Renderable) => void>,
+    axis: HTMLDivElement
+    ) {
+    intervalID = window.setInterval(() => {
+        const axId = axis.className.split(' ')[1]?.split('-')[0];
+        const selectedObj = renderer.getSelectedRenderable()!;
+        const key = gState + axId!;
+
+        if (key in methodMap) {
+            methodMap[key]!(selectedObj);
+        }
+
+    }, 50);
+}
+
+function gizmoMouseUp() {
+    window.clearInterval(intervalID);
+}
+
+function createMethodMap() {
+    return {
+        [TransformationState.MOVE + "x"]: (r: Renderable) => r.moveX(movDelta),
+        [TransformationState.MOVE + "mx"]: (r: Renderable) => r.moveX(-movDelta),
+        [TransformationState.MOVE + "y"]: (r: Renderable) => r.moveY(movDelta),
+        [TransformationState.MOVE + "my"]: (r: Renderable) => r.moveY(-movDelta),
+        [TransformationState.MOVE + "z"]: (r: Renderable) => r.moveZ(movDelta),
+        [TransformationState.MOVE + "mz"]: (r: Renderable) => r.moveZ(-movDelta),
+
+        [TransformationState.ROTATION + "x"]: (r: Renderable) => r.rotX(rotDelta),
+        [TransformationState.ROTATION + "mx"]: (r: Renderable) => r.rotX(-rotDelta),
+        [TransformationState.ROTATION + "y"] : (r: Renderable) => r.rotY(rotDelta),
+        [TransformationState.ROTATION + "my"] : (r: Renderable) => r.rotY(-rotDelta),
+        [TransformationState.ROTATION + "z"] : (r: Renderable) => r.rotZ(rotDelta),
+        [TransformationState.ROTATION + "mz"] : (r: Renderable) => r.rotZ(-rotDelta),
+
+        [TransformationState.SCALE + "x"]: (r: Renderable) => r.scaleX(scaleDelta),
+        [TransformationState.SCALE + "mx"]: (r: Renderable) => r.scaleX(-scaleDelta),
+        [TransformationState.SCALE + "y"]: (r: Renderable) => r.scaleY(scaleDelta),
+        [TransformationState.SCALE + "my"]: (r: Renderable) => r.scaleY(-scaleDelta),
+        [TransformationState.SCALE + "z"]: (r: Renderable) => r.scaleZ(scaleDelta),
+        [TransformationState.SCALE + "mz"]: (r: Renderable) => r.scaleZ(-scaleDelta),
+    };
 }
 
 function createAxis(wrapClass: string, axisClass: string) {
@@ -206,6 +282,18 @@ function onStateChange(state: TransformationState, btn: HTMLButtonElement) {
         return;
     }
 
+    switch (state) {
+        case TransformationState.MOVE:
+            transLbl.textContent = "Move";
+            break;
+        case TransformationState.ROTATION:
+            transLbl.textContent = "Rotate";
+            break;
+        case TransformationState.SCALE: 
+            transLbl.textContent = "Scale";
+            break;
+    };
+
     const pane = btn.parentElement!;
     for (const b of pane.children)
         b.classList.remove('active');
@@ -213,6 +301,10 @@ function onStateChange(state: TransformationState, btn: HTMLButtonElement) {
     gState = state;
     btn.classList.add('active');
     showElement(bottomPane);
+    if (gState === TransformationState.SCALE)
+        showElement(scaleCont);
+    else
+        hideElement(scaleCont);
 }
 
 function resetState(pane: HTMLDivElement) {

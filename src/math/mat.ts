@@ -159,6 +159,22 @@ export class Mat {
         this.transZ(mat, pos.z);
     }
 
+    static scaleX(mat: number[], s: number) {
+        for (let i = 0; i < 3; ++i) {
+            mat[i]! *= s;
+        }
+    }
+
+    static scaleY(mat: number[], s: number) {
+        for (let i = 4; i < 7; ++i)
+            mat[i]! *= s;
+    }
+
+    static scaleZ(mat: number[], s: number) {
+        for(let i = 8; i < 11; ++i)
+            mat[i]! *= s;
+    }
+
     static scale(mat: number[], s: number) {
         for (let i = 0; i < 3; ++i) {
             for (let j = 0; j < 3; ++j) {

@@ -13,6 +13,7 @@ export class Renderable {
     private static readonly uniformNames = ['uHasColor', 'uHasTex', 'uDiffuseMap', 'uNormalMat'];
 
     private position: Position = defaultPosition();
+    private scale = {x: 1, y: 1, z: 1};
     private modelMat: number[];
     private normalMat: number[];
     private modelMatLoc: WebGLUniformLocation | null;
@@ -46,17 +47,84 @@ export class Renderable {
         );
     }
 
+    moveX(x: number) {
+        this.position.x += x;
+        this.updateMatrices();
+    }
+
+    moveY(y: number) {
+        this.position.y += y;
+        this.updateMatrices();
+    }
+
+    moveZ(z: number) {
+        this.position.z += z;
+        this.updateMatrices();
+    }
+
+    rotX(angle: number) {
+        this.position.phi = (this.position.phi + angle) % 360;
+        this.updateMatrices();
+    }
+
+    rotY(angle: number) {
+        this.position.theta = (this.position.theta + angle) % 360;
+        this.updateMatrices();
+    }
+
+    rotZ(angle: number) {
+        this.position.gamma = (this.position.gamma + angle) % 360;
+        this.updateMatrices();
+    }
+
+    scaleX(s: number) {
+        if (this.scale.x < 0.1 && s < 0)
+            return;
+        this.scale.x += s;
+        this.updateMatrices();
+    }
+
+    scaleY(s: number) {
+        if (this.scale.y < 0.1 && s < 0)
+            return;
+        this.scale.y += s;
+        this.updateMatrices();
+    }
+
+    scaleZ(s: number) {
+        if (this.scale.z < 0.1 && s < 0)
+            return;
+        this.scale.z += s;
+        this.updateMatrices();
+    }
+
     move(dPos: Position) {
         this.position.x += dPos.x;
         this.position.y += dPos.y;
         this.position.z += dPos.z;
         this.position.theta += dPos.theta;
         this.position.phi += dPos.phi;
+        this.position.gamma += dPos.gamma;
 
+        this.updateMatrices();
+    }
+
+    setScale(s: {x: number, y: number, z: number}) {
+        this.scale = s;
+        this.updateMatrices();
+    }
+
+    private updateMatrices() {
         Mat.setIdentityMat(this.modelMat);
-        Mat.translate(this.modelMat, this.position);
-        Mat.rotY(this.modelMat, this.position.theta);
+        
+        Mat.scaleX(this.modelMat, this.scale.x);
+        Mat.scaleY(this.modelMat, this.scale.y);
+        Mat.scaleZ(this.modelMat, this.scale.z);
         Mat.rotX(this.modelMat, this.position.phi);
+        Mat.rotY(this.modelMat, this.position.theta);
+        Mat.rotZ(this.modelMat, this.position.gamma);
+        Mat.translate(this.modelMat, this.position);
+
         Mat.modelToNormalMat(this.modelMat, this.normalMat);
     }
 
@@ -82,6 +150,8 @@ export class Renderable {
     getTexture() { return this.diffuseTex; }
 
     isTexturable() { return this.mesh.texturable; }
+
+    getPosition() { return this.position; }
 
     destroy() {
         this.gl.deleteVertexArray(this.vao);

@@ -5,7 +5,6 @@ export class Utility {
         return fetch(file)
             .then(response => {
                 if (response.ok) {
-                    console.log("Loaded: " + file);
                     return response.text();
                 }
                 throw new Error("can't read file: " + file);
@@ -17,7 +16,6 @@ export class Utility {
             const img = new Image();
             img.src = file;
             img.onload = () => {
-                console.log("Loaded: " + file);
                 resolve(img);
             };
             img.onerror = reject;

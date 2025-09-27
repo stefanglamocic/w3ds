@@ -54,6 +54,11 @@ canvas {
     height: 40px !important;
 }
 
+.trans-lbl {
+    color: white;
+    font-size: large;
+}
+
 .bottom-pane {
     position: absolute;
     bottom: 20px;
