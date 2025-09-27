@@ -19,7 +19,7 @@ export class Camera {
     private viewMatLocs = new Map<WebGLProgram, WebGLUniformLocation>();
 
     constructor(private inputEvents: InputEvents, private viewMat: number[]) { 
-            this.state.n = Mat.rotateVec(this.state.n, this.state.u, -20);
+            this.state.n = Mat.rotateVec(this.state.n, this.state.u, -10);
             this.state.v = Mat.cross(this.state.n, this.state.u);
             this.normalizeUVN();
     }

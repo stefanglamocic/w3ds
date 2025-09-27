@@ -32,7 +32,7 @@ var posLbl: HTMLLabelElement;
 var scaleLbl: HTMLLabelElement;
 
 const movDelta = 0.15;
-const rotDelta = 0.85;
+const rotDelta = 3.5;
 const scaleDelta = 0.05;
 
 async function createSvgButton(file: string) {
@@ -283,6 +283,7 @@ function initObjInput(renderer: Renderer, showElements: (r: Renderable) => void)
             .then(r => {
                 renderer.selectRenderable(r);
                 showElements(r);
+                setInfoLabels(r);
             });
     });
 }
