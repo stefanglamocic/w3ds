@@ -8,6 +8,7 @@ import { ShaderProgram } from "./shader-program.js";
 import { Utility } from "../util/util.js";
 import { PickingFramebuffer } from "./picking-framebuffer.js";
 import { OutlineRenderer } from "./outline-renderer.js";
+import { DirectionalLight } from "./directional-light.js";
 
 const vertShaderFile = 'shaders/vertexShader.vert';
 const fragShaderFile = 'shaders/fragmentShader.frag';
@@ -30,6 +31,7 @@ export class Renderer {
 
     private projMat: number[];
     private viewMat = Mat.getIdentityMat();
+    private dirLight!: DirectionalLight;
 
     private inputEvents: InputEvents;
     private camera: Camera;
@@ -131,6 +133,7 @@ export class Renderer {
         rend.updateProjMat();
         rend.pickingFBO.setUniformLocs(rend.programs['picking']!);
         rend.outlineRenderer = new OutlineRenderer(gl, rend.programs['outline']!);
+        rend.dirLight = new DirectionalLight(gl, rend.programs['regular']!);
 
         return rend;
     }
@@ -241,6 +244,8 @@ export class Renderer {
     }
 
     getSelectedRenderable() { return this.selectedRenderable; }
+
+    getDirLight() { return this.dirLight; }
 
     deleteSelectedObject() {
         this.deleteObject(this.selectedRenderable);

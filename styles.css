@@ -57,6 +57,26 @@ canvas {
     border-radius: 3px;
 }
 
+.sun-pane {
+    display: grid;
+    position: absolute;
+    grid-template-columns: repeat(3, 1fr);
+    grid-template-rows: repeat(3, 1fr);
+    gap: 4px;
+    bottom: 4px;
+    left: 4px;
+    background-color: rgba(68, 68, 68, 0.555);
+    border-radius: 3px;
+    height: 150px;
+    width: 150px;
+    padding: 4px;
+}
+
+.sun-pane * {
+    width: 100% !important;
+    height: 100% !important;
+}
+
 .scale-cont {
     display: flex;
     gap: 12px;

@@ -17,6 +17,6 @@ const vec3 defaultColor = vec3(0.522);
 void main() {
     vTexCoord = aTexCoord;
     vColor = uHasColor ? aColor : defaultColor;
-    vNormal = normalize(vec3(uNormalMat * vec4(aNormal, 0.0)));
+    vNormal = mat3(uNormalMat) * aNormal;
     gl_Position = uProjMat * uViewMat * uModelMat * vec4(aPosition, 1.);
 }

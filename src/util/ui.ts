@@ -11,6 +11,8 @@ const scaleIFile = 'res/icons/resize.svg';
 const removeIFile = 'res/icons/trash-can.svg';
 const expandIFile = 'res/icons/expand.svg';
 const contractIFile = 'res/icons/contract.svg';
+const sunIFile = 'res/icons/sunbeams.svg';
+const arrowIFile = 'res/icons/arrow.svg';
 
 enum TransformationState {
     IDLE,
@@ -62,6 +64,8 @@ export async function addUiElements(renderer: Renderer) {
 
     bottomPane = document.createElement('div');
     bottomPane.classList.add('bottom-pane');
+
+    const sunPane = await createSunControls(renderer);
 
     const importBtn = await createSvgButton(cubeIFile);
     const textureBtn = await createSvgButton(brushIFile);
@@ -182,8 +186,48 @@ export async function addUiElements(renderer: Renderer) {
     document.body.appendChild(rightPane);
     document.body.appendChild(bottomPane);
     document.body.appendChild(infoPane);
+    document.body.appendChild(sunPane);
 
     hideElements();
+}
+
+async function createSunControls(renderer: Renderer) {
+    const sunPane = document.createElement('div');
+    sunPane.classList.add('sun-pane');
+
+    const downArrow = await createSvgButton(arrowIFile);
+    const upArrow = downArrow.cloneNode(true) as HTMLButtonElement;
+    upArrow.style.transform = 'rotate(180deg)';
+    const leftArrow = downArrow.cloneNode(true) as HTMLButtonElement;
+    leftArrow.style.transform = 'rotate(90deg)';
+    const rightArrow = downArrow.cloneNode(true) as HTMLButtonElement;
+    rightArrow.style.transform = 'rotate(-90deg)';
+
+    const btnArr = [upArrow, leftArrow, rightArrow, downArrow];
+    let arrI = 0;
+    for (let i = 0; i < 9; ++i) {
+        if (i % 2 === 0) {
+            const dummy = document.createElement('div');
+            sunPane.appendChild(dummy);
+        }
+        else {
+            sunPane.appendChild(btnArr[arrI++]!);
+        }
+    }
+
+
+    const sunSymbol = sunPane.childNodes[4] as HTMLDivElement;
+    Utility.readFile(sunIFile)
+        .then(svg => sunSymbol.innerHTML = svg);
+
+    const dirLight = renderer.getDirLight();
+
+    downArrow.addEventListener('click', () => dirLight.moveZ(-movDelta));
+    upArrow.addEventListener('click', () => dirLight.moveZ(movDelta));
+    leftArrow.addEventListener('click', () => dirLight.moveX(movDelta));
+    rightArrow.addEventListener('click', () => dirLight.moveX(-movDelta));
+
+    return sunPane;
 }
 
 function setInfoLabels(r: Renderable) {
