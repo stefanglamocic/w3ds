@@ -37,7 +37,7 @@ const movDelta = 0.15;
 const rotDelta = 3.5;
 const scaleDelta = 0.05;
 
-async function createSvgButton(file: string) {
+async function createSvgButton(file: string, rotate = 0) {
     return Utility.readFile(file)
         .then(svgSource => {
             const btn = document.createElement('button');
@@ -45,7 +45,10 @@ async function createSvgButton(file: string) {
 
             btn.classList.add('svg-btn');
 
-            const path = btn.querySelector('path')!;
+            const svg = btn.querySelector('svg')!;
+            if (rotate !== 0) {
+                svg.style.transform = `rotate(${rotate}deg)`;
+            }
 
             btn.addEventListener('mousedown', () => btn.style.border = 'solid 1px #444444ff');
 
@@ -196,12 +199,9 @@ async function createSunControls(renderer: Renderer) {
     sunPane.classList.add('sun-pane');
 
     const downArrow = await createSvgButton(arrowIFile);
-    const upArrow = downArrow.cloneNode(true) as HTMLButtonElement;
-    upArrow.style.transform = 'rotate(180deg)';
-    const leftArrow = downArrow.cloneNode(true) as HTMLButtonElement;
-    leftArrow.style.transform = 'rotate(90deg)';
-    const rightArrow = downArrow.cloneNode(true) as HTMLButtonElement;
-    rightArrow.style.transform = 'rotate(-90deg)';
+    const upArrow = await createSvgButton(arrowIFile, 180);
+    const leftArrow = await createSvgButton(arrowIFile, 90);
+    const rightArrow = await createSvgButton(arrowIFile, -90);
 
     const btnArr = [upArrow, leftArrow, rightArrow, downArrow];
     let arrI = 0;
