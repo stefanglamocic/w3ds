@@ -36,6 +36,7 @@ export class Renderer {
     private inputEvents: InputEvents;
     private camera: Camera;
     private grid: Grid | null = null;
+    private gridEnabled = true;
 
     private rendInstances = new Map<string, Renderable[]>();
     private renderables: Renderable[] = [];
@@ -75,8 +76,8 @@ export class Renderer {
                 this.outlineRenderer?.draw(this.selectedRenderable);
             r.draw();
         }
-
-        this.drawGrid();
+        if (this.gridEnabled)
+            this.drawGrid();
 
         requestAnimationFrame(this.run);
     }
@@ -145,6 +146,12 @@ export class Renderer {
 
         this.grid = new Grid(this.gl, this.programs['grid']);
     }
+
+    hideGrid() { this.gridEnabled = false; }
+
+    showGrid() { this.gridEnabled = true; }
+
+    getCanvas() { return this.canvas; }
 
     private drawGrid() {
         this.gl.disable(this.gl.CULL_FACE);

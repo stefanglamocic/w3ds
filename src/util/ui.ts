@@ -3,7 +3,7 @@ import type { Renderer } from "../rendering/renderer.js";
 import { Utility } from "./util.js";
 
 const cubeIFile = 'res/icons/cube.svg';
-const boxIFile = 'res/icons/box-unpacking.svg';
+const cameraIFile = 'res/icons/photo-camera.svg';
 const brushIFile = 'res/icons/large-paint-brush.svg';
 const moveIFile = 'res/icons/move.svg';
 const rotIFile = 'res/icons/perpendicular-rings.svg';
@@ -71,6 +71,7 @@ export async function addUiElements(renderer: Renderer) {
     const sunPane = await createSunControls(renderer);
 
     const importBtn = await createSvgButton(cubeIFile);
+    const photoBtn = await createSvgButton(cameraIFile);
     const textureBtn = await createSvgButton(brushIFile);
     const removeBtn = await createSvgButton(removeIFile);
 
@@ -100,7 +101,7 @@ export async function addUiElements(renderer: Renderer) {
     scaleLbl.classList.add('info-lbl');
     infoPane.append(posLbl, scaleLbl);
 
-    leftPane.append(importBtn, textureBtn, removeBtn);
+    leftPane.append(importBtn, photoBtn, textureBtn, removeBtn);
     rightPane.append(moveBtn, rotBtn, scaleBtn);
     bottomPane.append(transLbl, gizmo, scaleCont);
 
@@ -142,6 +143,21 @@ export async function addUiElements(renderer: Renderer) {
 
     importBtn.addEventListener('click', () => {
         objInput.showPicker();
+    });
+
+    photoBtn.addEventListener('click', () => {
+        renderer.hideGrid();
+        requestAnimationFrame(timestamp => {
+            const dataURL = renderer.getCanvas().toDataURL('image/png');
+
+            const link = document.createElement('a');
+            link.href = dataURL;
+            link.download = timestamp + '.png';
+            link.click();
+
+            renderer.showGrid();
+        });
+        
     });
 
     textureBtn.addEventListener('click', () => texInput.showPicker());
