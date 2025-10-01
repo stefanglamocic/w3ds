@@ -95,9 +95,12 @@ export class Camera {
             moved = true;
         }
         else if (this.inputEvents.rightMActive) {
-            this.state.x -= this.state.u[0] * this.inputEvents.movDelta[0] * this.panSens;
-            this.state.y += this.state.v[1] * this.inputEvents.movDelta[1] * this.panSens;
-            this.state.z += this.state.v[2] * this.inputEvents.movDelta[1] * this.panSens;
+            const dx = this.inputEvents.movDelta[0] * this.panSens;
+            const dy = this.inputEvents.movDelta[1] * this.panSens;
+
+            this.state.x -= this.state.u[0] * dx + this.state.v[0] * dy;
+            this.state.y += this.state.u[1] * dx + this.state.v[1] * dy;
+            this.state.z -= this.state.u[2] * dx + this.state.v[2] * dy;
 
             this.inputEvents.movDelta = [0, 0];
             moved = true;
